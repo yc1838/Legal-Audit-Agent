@@ -1,0 +1,9 @@
+# Legal Audit Agent dependencies
+fastapi
+uvicorn
+pydantic
+pytest
+httpx
+openai
+PyPDF2
+reportlab
