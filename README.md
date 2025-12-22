@@ -39,6 +39,11 @@ All backend commands must be run from the `/backend` directory.
     pip install -r requirements.txt
     ```
 
+4.  Create a `.env` file in the `backend` directory with your OpenAI API key:
+    ```
+    OPENAI_API_KEY="your_key_here"
+    ```
+
 ### Running the Application
 
 Ensure you are in the `backend` directory and your virtual environment is activated.
@@ -79,6 +84,29 @@ npm run dev
 
 ---
 
+## Final Verification
+
+To run the entire application for verification, follow these steps:
+
+1.  **Start the Backend**:
+    -   Navigate to the `backend` directory: `cd backend`
+    -   Activate the virtual environment: `source venv/bin/activate`
+    -   Install dependencies: `pip install -r requirements.txt`
+    -   Create a `.env` file with the content `OPENAI_API_KEY="your_key_here"`
+    -   Start the server: `uvicorn app.main:app --host 0.0.0.0 --port 8000 --env-file .env`
+
+2.  **Start the Frontend**:
+    -   In a separate terminal, navigate to the `frontend` directory: `cd frontend`
+    -   Install dependencies: `npm install`
+    -   Start the development server: `npm run dev`
+
+3.  **Test the Application**:
+    -   Open your web browser and go to the URL provided by the frontend development server (it will likely be `http://localhost:5173`).
+    -   Upload a `.txt` contract file.
+    -   Click the "Audit Contract" button.
+    -   The analysis from the AI will be displayed in the "Audit results" text area.
+
+
 ## API Usage
 
 The following examples assume the backend server is running.
@@ -89,12 +117,14 @@ The following examples assume the backend server is running.
 curl http://127.0.0.1:8000/health
 ```
 
-### Upload and Analyze a PDF
+### Upload and Analyze a TXT file
 
 Note: The path to the asset is now relative to the `backend` directory.
 
 ```bash
 # From the project root
-curl -F "file=@backend/assets/Credit_Agreement.pdf" http://127.0.0.1:8000/analyze
+curl -F "file=@/path/to/your/contract.txt" http://127.0.0.1:8000/analyze-contract/
 ```
 
+### Model choice
+Uses bad models in testing, but based on current experiences only MODEL = "gpt-5.2-2025-12-11" works the most well with length legal documents.
