@@ -33,13 +33,27 @@ pip install -r requirements.txt
 ### Running the Application
 
 ```bash
-python app/main.py
+uvicorn app.main:app --reload --env-file .env
+```
+
+### API Usage
+
+Upload and analyze a PDF:
+
+```bash
+curl -F "file=@assets/Credit_Agreement.pdf" http://127.0.0.1:8000/analyze
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/health
 ```
 
 ### Running Tests
 
 ```bash
-python -m unittest discover tests/
+pytest
 ```
 
 ## Development

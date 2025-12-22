@@ -1,28 +1,34 @@
+import json
+import os
+import logging
+from typing import Dict
+
 from openai import OpenAI
 from openai.types import FileObject as openai_file_object
-import os
-import json
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY not set")
+MODEL = "gpt-5.2-2025-12-11"
+logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-PATH = "assets/Credit_Agreement.pdf"
 
-if not PATH:
-    raise ValueError("Please set PATH to a valid PDF file path.")
+def _get_client() -> OpenAI:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY not set")
+    return OpenAI(api_key=api_key)
 
-def upload_contract_file(file_path) -> openai_file_object:
+
+def upload_contract_file(file_path: str, client: OpenAI) -> openai_file_object:
     """Extract text from a PDF file."""
+    if not os.path.isfile(file_path):
+        raise ValueError("File does not exist.")
     try:
         with open(file_path, "rb") as f:
             file = client.files.create(file=f, purpose="assistants")
     except Exception as e:
-        print(f"Error uploading file: {e}")
-        return None
+        raise RuntimeError(f"Error uploading file: {e}") from e
     print(f"☑️ File uploaded: {file.id}. File path: {file_path}")
     return file
+
 
 TEST_PROMPT = """
 Role: You are a strict, pedantic Legal Proofreader. You are reviewing a standalone legal document fragment.
@@ -43,10 +49,10 @@ Output includes:
 - Law reference, if any.
 """
 
-def analyze_document(file_path):
-    text_file = upload_contract_file(file_path)
-    if not text_file:
-        return None
+
+def analyze_document(file_path: str) -> Dict:
+    client = _get_client()
+    text_file = upload_contract_file(file_path, client=client)
     input_prompt = """
     You are an expert contract lawyer with attention to details ability.
 
@@ -72,7 +78,7 @@ def analyze_document(file_path):
     """
     try:
         response = client.responses.create(
-            model="gpt-5.2-2025-12-11", # o4-mini
+            model=MODEL,
             input=[
                 {
                     "role": "user",
@@ -90,19 +96,22 @@ def analyze_document(file_path):
             ]
         )
     except Exception as e:
-        print(f"Error analyzing document: {e}")
-        return None
-    
-    print("response:\n")
+        raise RuntimeError(f"Error analyzing document: {e}") from e
+
     try:
-        data = json.loads(response.output_text)
+        raw_output = response.output_text
+    except AttributeError as e:
+        raise RuntimeError(f"Response missing output_text: {response}") from e
+
+    try:
+        data = json.loads(raw_output)
     except json.JSONDecodeError as e:
-        print("Failed to parse response as JSON:", e)
-        print("Raw output_text:", response.output_text)
-        return None
-    
-    print(data)
-    return data
+        logger.error("Failed to parse model output as JSON: %s", raw_output)
+        raise RuntimeError(f"Failed to parse response as JSON: {raw_output}") from e
 
-
-result = analyze_document(PATH)
+    # Normalize output to a dict with an "errors" list for downstream code.
+    if isinstance(data, dict) and "errors" in data:
+        return data
+    if isinstance(data, list):
+        return {"errors": data}
+    return {"errors": []}

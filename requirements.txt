@@ -7,3 +7,5 @@ httpx
 openai
 PyPDF2
 reportlab
+python-dotenv
+python-multipart
