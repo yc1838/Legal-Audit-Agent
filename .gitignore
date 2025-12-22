@@ -45,11 +45,6 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Virtual environments
-venv/
-ENV/
-env/
-
 # IDEs
 .vscode/
 .idea/
@@ -58,7 +53,16 @@ env/
 *~
 .DS_Store
 
-# Project specific
-.env
+# --- Project Specific ---
+
+# Backend (Python)
+backend/venv/
+backend/assets/
+backend/.pytest_cache/
 *.log
-assets/
+.env
+
+# Frontend (React)
+frontend/node_modules/
+frontend/dist/
+frontend/.env

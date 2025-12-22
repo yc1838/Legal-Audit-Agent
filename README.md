@@ -1,53 +1,50 @@
 # Legal Audit Agent
 
-A Python-based application for analyzing and auditing legal contracts.
+A monorepo project for analyzing and auditing legal contracts, featuring a Python backend and a React frontend.
 
 ## Project Structure
 
+The project is organized as a monorepo with two main packages:
+
 ```
 legal-audit-agent/
-├── app/              # Main application code
-├── tools/            # Contract analysis tools
-├── schemas/          # Data schemas and models
-├── tests/            # Unit tests
-├── requirements.txt  # Python dependencies
-├── .gitignore        # Git ignore rules
-└── README.md         # This file
+├── backend/          # FastAPI application (Python)
+├── frontend/         # React application (TypeScript)
+├── GEMINI.md         # AI context file
+├── .gitignore
+└── README.md
 ```
 
-## Getting Started
+---
 
-### Installation
+## Backend (FastAPI)
 
-1. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate
-```
+### Setup and Installation
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+All backend commands must be run from the `/backend` directory.
+
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+
+2.  Create a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ### Running the Application
 
+Ensure you are in the `backend` directory and your virtual environment is activated.
+
 ```bash
 uvicorn app.main:app --reload --env-file .env
-```
-
-### API Usage
-
-Upload and analyze a PDF:
-
-```bash
-curl -F "file=@assets/Credit_Agreement.pdf" http://127.0.0.1:8000/analyze
-```
-
-Health check:
-
-```bash
-curl http://127.0.0.1:8000/health
 ```
 
 ### Running Tests
@@ -56,9 +53,48 @@ curl http://127.0.0.1:8000/health
 pytest
 ```
 
-## Development
+---
 
-- Add dependencies to `requirements.txt`
-- Create new tools in `tools/`
-- Define schemas in `schemas/`
-- Add tests in `tests/`
+## Frontend (React)
+
+All frontend commands must be run from the `/frontend` directory.
+
+### Setup and Installation
+
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend
+    ```
+
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+
+### Running the Application
+
+```bash
+npm run dev
+```
+
+---
+
+## API Usage
+
+The following examples assume the backend server is running.
+
+### Health Check
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+### Upload and Analyze a PDF
+
+Note: The path to the asset is now relative to the `backend` directory.
+
+```bash
+# From the project root
+curl -F "file=@backend/assets/Credit_Agreement.pdf" http://127.0.0.1:8000/analyze
+```
+
