@@ -127,4 +127,19 @@ curl -F "file=@/path/to/your/contract.txt" http://127.0.0.1:8000/analyze-contrac
 ```
 
 ### Model choice
-Uses bad models in testing, but based on current experiences only MODEL = "gpt-5.2-2025-12-11" works the most well with length legal documents.
+Uses bad models in testing, but based on current experiences only MODEL = "gpt-5.2-2025-12-11" works the best so far (as of Dec 2025 among OpenAI models) with length legal documents.
+
+## TODOs
+### Enable multiple model selections
+### Enable developer log on the webpage to help debug, also increase monitoring.
+### Specifically and agentically use multiple ai to check if the answer is actually reliable.
+### Implement decisions based on kind of paper
+### Solve common problems lawyers have with accuracy. Which includes: inconsistent dates(including based on law logically wrong ones), misspelling names, outdated names(from last contract).
+```
+Also fix the problem that AI constantly look get the definition is missing or not part wrong. Which sounds like will be very hard.
+```
+### Create a better UI (do it later, please!!!!!!)
+### Add functionality of viewing the PDF, and highlight all the suspected errors
+### Add functionality of auto-correct, followed by checking with user.
+### Add functionality of completely auto process the whole document without human interfere.
+### Add functionality of completely 

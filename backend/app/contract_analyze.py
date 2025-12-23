@@ -6,7 +6,8 @@ from typing import Dict
 from openai import OpenAI
 from PyPDF2 import PdfReader
 
-MODEL = "gpt-4-turbo-preview"
+MODEL = "gpt-5.2"
+# MODEL = "gpt-4-turbo-preview"
 logger = logging.getLogger(__name__)
 
 
