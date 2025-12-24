@@ -137,9 +137,29 @@ Uses bad models in testing, but based on current experiences only MODEL = "gpt-5
 ### Solve common problems lawyers have with accuracy. Which includes: inconsistent dates(including based on law logically wrong ones), misspelling names, outdated names(from last contract).
 ```
 Also fix the problem that AI constantly look get the definition is missing or not part wrong. Which sounds like will be very hard.
+虽然也很可能只是单纯因为把 PDF 做成比较小份去 test 的时候会自然 miss 一些后面的 terms 所以各个 ai 才会 confused.
 ```
 ### Create a better UI (do it later, please!!!!!!)
 ### Add functionality of viewing the PDF, and highlight all the suspected errors
+### Add judge agents to improve reliability
+
+
 ### Add functionality of auto-correct, followed by checking with user.
-### Add functionality of completely auto process the whole document without human interfere.
-### Add functionality of completely 
+### Add functionality of, change the product to be a completely legal financial contract review product. The lawyer will be able to review contracts on this app, while the systems runs on the background, highlight those for example data consistencies on maybe a right side bar (showing position in right side bar, click when lawyer finish whatever she was focusing on, and then it jumps to the actual position). This is important because i realized 1. legal is so strict there is no way we can completely auto it without any human approval. 2. nobody wants to stare at screen, then if the first one is true, the best way is to make it such a way that it works async without distracting the lawyer, who usually loves focus deep. Of course, I can also choose to let them auto process in batch, so the lawyer can get notification of email when they are reviewed by agent, review all these small mistakes in batch, then focus on something else.
+### Translating contracts and auto save as PDF
+### For lots of parts where we need to look up the internet for the updated law, because whatever in the existing model might be outdated. So, one agent will be specifically designed for it.
+
+GEMINI开发建议：
+A. 解决 "Monitoring" (开发者日志)
+你提到 Enable developer log... to help debug。
+
+不要从头写。 推荐集成 LangSmith (LangChain) 或 Phoenix (Arize AI)。
+
+它们能直接可视化你的 Agent 思考过程（Trace），看到是哪一步 Retrieve 错了，或者是哪一步 Prompt 没写好。Hackathon 的评委非常喜欢看这种 "Evaluation" 的证据。
+
+B. 解决 "Accuracy" (测试集)
+你需要建立一个 "Golden Set"。
+
+找 5 个典型的有问题合同，人工标出里面的 10 个错误。
+
+每次修改 Prompt 或架构后，自动跑这 5 个合同，看 AI 能抓出几个。如果不做这个自动化测试，你永远不知道改了 Prompt 是变好了还是变坏了。
