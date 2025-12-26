@@ -7,6 +7,7 @@ import uuid
 from typing import List
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.contract_analyze import analyze_document
@@ -21,6 +22,20 @@ class AnalyzeResponse(BaseModel):
 
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/")
 async def root():
@@ -32,7 +47,7 @@ async def health_check():
     return {"status": "OK"}
 
 
-@app.post("/analyze", response_model=AnalyzeResponse)
+@app.post("/analyze-contract/", response_model=AnalyzeResponse)
 async def analyze_contract(file: UploadFile = File(...)):
     """Upload a PDF and run contract analysis."""
     if not file.filename:
