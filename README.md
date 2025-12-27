@@ -39,9 +39,9 @@ All backend commands must be run from the `/backend` directory.
     pip install -r requirements.txt
     ```
 
-4.  Create a `.env` file in the `backend` directory with your OpenAI API key:
+4.  Create a `.env` file in the `backend` directory with your Gemini API key:
     ```
-    OPENAI_API_KEY="your_key_here"
+    GEMINI_API_KEY="your_key_here"
     ```
 
 ### Running the Application
@@ -92,7 +92,7 @@ To run the entire application for verification, follow these steps:
     -   Navigate to the `backend` directory: `cd backend`
     -   Activate the virtual environment: `source venv/bin/activate`
     -   Install dependencies: `pip install -r requirements.txt`
-    -   Create a `.env` file with the content `OPENAI_API_KEY="your_key_here"`
+    -   Create a `.env` file with the content `GEMINI_API_KEY="your_key_here"`
     -   Start the server: `uvicorn app.main:app --host 0.0.0.0 --port 8000 --env-file .env`
 
 2.  **Start the Frontend**:
