@@ -5,6 +5,8 @@ from typing import Dict
 
 from google import genai
 from PyPDF2 import PdfReader
+from openpyxl import Workbook, load_workbook
+from datetime import datetime
 
 # Configure logging
 # These logs will be useful for a future UI-based developer log window
@@ -86,6 +88,36 @@ def _yield_log(level: str, message: str):
         }
     }) + "\n"
 
+def _log_to_excel(model: str, prompt: str, output: str):
+    """Logs the analysis session to an Excel file."""
+    file_path = "audit_logs.xlsx"
+    headers = ["Timestamp", "Model", "Prompt Snippet", "Full Prompt", "Output"]
+    
+    # Truncate prompt for easier viewing in snippet column
+    prompt_snippet = (prompt[:100] + "...") if len(prompt) > 100 else prompt
+
+    try:
+        if os.path.exists(file_path):
+            wb = load_workbook(file_path)
+            ws = wb.active
+        else:
+            wb = Workbook()
+            ws = wb.active
+            ws.append(headers)
+
+        ws.append([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            model,
+            prompt_snippet,
+            prompt,
+            output
+        ])
+        wb.save(file_path)
+        logger.info(f"Audit log saved to {file_path}")
+    except Exception as e:
+        logger.error(f"Failed to save audit log to Excel: {e}")
+
+
 def analyze_document_generator(file_path: str, test_mode: bool = False):
     """
     Generator that analyzes a PDF and yields status updates and logs.
@@ -157,6 +189,11 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
         
         raw_output = response.text
         yield _yield_log("INFO", "Analysis received from Gemini.")
+        
+        # Log to Excel (Non-test mode only)
+        full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
+        _log_to_excel(MODEL_NAME, full_prompt, raw_output)
+        
         yield _yield_log("DEBUG", f"Raw AI Output snippet: {raw_output[:100]}...")
 
         yield json.dumps({"stage": "finalizing", "message": "Synthesizing findings into structured report..."}) + "\n"
