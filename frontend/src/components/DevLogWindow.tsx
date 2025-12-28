@@ -36,9 +36,9 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
             console.error("Git sync error:", error);
             setSyncStatus("error");
             setSyncMessage(error instanceof Error ? error.message : "Connection failed");
+            setTimeout(() => setSyncStatus("idle"), 5000);
         } finally {
             setIsSyncing(false);
-            setTimeout(() => setSyncStatus("idle"), 5000);
         }
     };
 

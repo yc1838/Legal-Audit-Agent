@@ -177,3 +177,8 @@ Here is the cleaned-up and structured version of your thoughts:
 ### ADHD Dump Case Log (2025-12-28 00:38)
 * **Concern:** The PDF parsing process strips structural metadata such as page breaks and numbering, causing text from consecutive pages to merge and creating significant spacing anomalies in the downstream output.
 * **Systemic Fix:** Implement a layout-aware PDF extraction layer that injects explicit boundary tokens (e.g., `[NEW_PAGE_MARKER]`) and update the Agent's system architecture to include a pre-processing heuristic that identifies and corrects word-merging at these structural transition points.
+
+
+### ADHD Dump Case Log (2025-12-28 01:17)
+* **Concern:** High-friction transition from document-based insights to execution, where users must manually bridge the gap between identifying evidence (e.g., in a PDF) and performing complex administrative tasks like entity resolution, calendar coordination, and invitation management.
+* **Systemic Fix:** Implement a Context-Aware Multi-Agent Orchestration layer that integrates UI-level hooks (OCR/Context Capture) with a Tool-Calling Agent. This system should utilize a Named Entity Recognition (NER) module to map "@mentions" to contact databases and a Constraint-Based Scheduling Agent that autonomously queries Calendar APIs to find optimal slots based on "Work Hours" system parameters and existing availability.
