@@ -165,6 +165,8 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
             
             for i, page in enumerate(reader.pages):
                 extracted = page.extract_text() or ""
+                # Insert a clear page marker so the AI handles cross-page text correctly
+                text += f"\n\n--- [START OF PAGE {i+1}] ---\n"
                 text += extracted
                 yield _yield_log("DEBUG", f"Page {i+1} processed. ({len(extracted)} chars)")
         
