@@ -166,3 +166,7 @@ B. 解决 "Accuracy" (测试集)
 
 ### ADHD Dump Case Log (2025-12-28 00:28)
 *   Execute manual verification of the implemented fix.
+
+
+### ADHD Dump Case Log (2025-12-28 00:30)
+* **Concern:** Potential false positive for spelling error "thefinancial" in Page 2, Section 3(a)(iii). Investigation suggests a PDF parsing/rendering issue where a page break separated "the" and "financial," rather than a missing space in the source text.
