@@ -8,9 +8,10 @@ from typing import List
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.contract_analyze import analyze_document
+from app.contract_analyze import analyze_document, analyze_document_generator
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,39 @@ async def health_check():
     return {"status": "OK"}
 
 
+@app.post("/analyze-contract-stream/")
+async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool = False):
+    """Upload a PDF and run contract analysis with real-time status updates."""
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
+
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF files are supported.")
+
+    temp_dir = tempfile.mkdtemp(prefix="legal-audit-")
+    _, ext = os.path.splitext(file.filename)
+    temp_path = os.path.join(temp_dir, f"{uuid.uuid4()}{ext or '.pdf'}")
+
+    async def event_generator():
+        try:
+            contents = await file.read()
+            with open(temp_path, "wb") as out_file:
+                out_file.write(contents)
+
+            # analyze_document_generator yields JSON strings
+            for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
+                yield f"{stage_data}\n"
+        except Exception as e:
+            logger.exception("Streaming analysis failed")
+            yield json.dumps({"result": {"errors": [{"location": "System", "error": str(e), "suggestion": "Check logs"}]}}) + "\n"
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
+
+
 @app.post("/analyze-contract/", response_model=AnalyzeResponse)
-async def analyze_contract(file: UploadFile = File(...)):
+async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False):
     """Upload a PDF and run contract analysis."""
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
@@ -65,7 +97,7 @@ async def analyze_contract(file: UploadFile = File(...)):
         with open(temp_path, "wb") as out_file:
             out_file.write(contents)
 
-        result = analyze_document(temp_path)
+        result = analyze_document(temp_path, test_mode=test_mode)
         if not isinstance(result, dict):
             raise RuntimeError(f"Analysis failed to return a valid result: {result!r}")
 
