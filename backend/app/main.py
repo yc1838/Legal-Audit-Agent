@@ -93,16 +93,17 @@ class ADHDDumpRequest(BaseModel):
 async def git_sync():
     """Summarizes changes using Gemini, commits, and pushes to origin/dev."""
     try:
-        # 1. Get git diff
-        diff_proc = subprocess.run(["git", "diff", "HEAD"], capture_output=True, text=True, check=True)
-        diff_text = diff_proc.stdout
-        
-        # 2. Check if there are actually any changes to commit
-        status_proc = subprocess.run(["git", "status", "--short"], capture_output=True, text=True, check=True)
-        if not status_proc.stdout.strip():
-            return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
+        # 1. Stage all changes first (including untracked files)
+        subprocess.run(["git", "add", "."], check=True)
 
-        # 3. Summarize with Gemini using the diff
+        # 2. Check if there are staged changes to commit
+        diff_proc = subprocess.run(["git", "diff", "--cached"], capture_output=True, text=True, check=True)
+        diff_text = diff_proc.stdout
+
+        if not diff_text.strip():
+             return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
+        
+        # 3. Summarize with Gemini using the staged diff
         client = _get_client()
         prompt = f"""
         Role: Senior Software Engineer.
