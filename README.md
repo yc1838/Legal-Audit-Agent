@@ -164,9 +164,11 @@ B. 解决 "Accuracy" (测试集)
 
 每次修改 Prompt 或架构后，自动跑这 5 个合同，看 AI 能抓出几个。如果不做这个自动化测试，你永远不知道改了 Prompt 是变好了还是变坏了。
 
-### ADHD Dump Case Log (2025-12-28 00:28)
-*   Execute manual verification of the implemented fix.
-
 
 ### ADHD Dump Case Log (2025-12-28 00:30)
 * **Concern:** Potential false positive for spelling error "thefinancial" in Page 2, Section 3(a)(iii). Investigation suggests a PDF parsing/rendering issue where a page break separated "the" and "financial," rather than a missing space in the source text.
+
+
+### ADHD Dump Case Log (2025-12-28 00:33)
+* **Concern:** A typographical spacing error on Page 2 where the words "the" and "financial" are concatenated as "thefinancial" within the financial covenants section.
+* **Solution:** Edit the text on Page 2 to insert the missing space, ensuring the phrase is correctly rendered as "the financial."

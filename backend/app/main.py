@@ -142,12 +142,14 @@ async def adhd_dump(request: ADHDDumpRequest):
         if not request.content.strip():
             raise HTTPException(status_code=400, detail="Empty content")
 
-        # 1. Summarize with Gemini
+        # 1. Summarize and propose solution with Gemini
         client = _get_client()
         prompt = f"""
-        Role: Efficient Task Manager.
-        Task: Clean up and structure the following raw thoughts into a professional 'To-Do' or 'Concern' item.
-        Format: Use a markdown bullet point. Keep it concise.
+        Role: Efficient Task Manager & Problem Solver.
+        Task: Clean up and structure the following raw thoughts into a professional 'Concern' item and a 'Proposed Solution' or 'Action Item'.
+        Format: 
+        * **Concern:** [Cleaned up concern]
+        * **Solution:** [Clear, actionable fix or next step]
         
         Input:
         {request.content}
