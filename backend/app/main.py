@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from app.contract_analyze import analyze_document, analyze_document_generator, _get_client
 import subprocess
 import json
-from pydantic import BaseModel
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 

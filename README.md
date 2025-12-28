@@ -163,3 +163,6 @@ B. 解决 "Accuracy" (测试集)
 找 5 个典型的有问题合同，人工标出里面的 10 个错误。
 
 每次修改 Prompt 或架构后，自动跑这 5 个合同，看 AI 能抓出几个。如果不做这个自动化测试，你永远不知道改了 Prompt 是变好了还是变坏了。
+
+### ADHD Dump Case Log (2025-12-28 00:28)
+*   Execute manual verification of the implemented fix.
