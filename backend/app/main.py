@@ -97,14 +97,12 @@ async def git_sync():
         diff_proc = subprocess.run(["git", "diff", "HEAD"], capture_output=True, text=True, check=True)
         diff_text = diff_proc.stdout
         
-        if not diff_text.strip():
-            # Check for staged changes or untracked files
-            status_proc = subprocess.run(["git", "status", "--short"], capture_output=True, text=True, check=True)
-            if not status_proc.stdout.strip():
-                return {"status": "success", "message": "Nothing to sync. Working tree clean."}
-            diff_text = status_proc.stdout
+        # 2. Check if there are actually any changes to commit
+        status_proc = subprocess.run(["git", "status", "--short"], capture_output=True, text=True, check=True)
+        if not status_proc.stdout.strip():
+            return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
 
-        # 2. Summarize with Gemini
+        # 3. Summarize with Gemini using the diff
         client = _get_client()
         prompt = f"""
         Role: Senior Software Engineer.
