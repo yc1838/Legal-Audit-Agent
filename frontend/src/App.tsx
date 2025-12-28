@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProcessingStepper, StageId } from "@/components/ProcessingStepper";
 import { DevLogWindow, LogEntry } from "@/components/DevLogWindow";
+import { ADHDDumpWindow } from "@/components/ADHDDumpWindow";
 import { Loader2, Bug } from "lucide-react";
 
 function App() {
@@ -205,10 +206,15 @@ function App() {
         </Card>
       </div>
 
-      {/* Dev Logs Sidebar */}
+      {/* Sidebar with Dev Logs and ADHD Dump */}
       {showDevLogs && (
-        <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
-          <DevLogWindow logs={logs} />
+        <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden bg-black">
+          <div className="flex-1 overflow-hidden min-h-[40%]">
+            <DevLogWindow logs={logs} />
+          </div>
+          <div className="h-[250px] shrink-0">
+            <ADHDDumpWindow />
+          </div>
         </div>
       )}
 

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from app.contract_analyze import analyze_document, analyze_document_generator, _get_client
 import subprocess
 import json
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,13 @@ async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool 
     return StreamingResponse(event_generator(), media_type="application/x-ndjson")
 
 
+class GitSyncResponse(BaseModel):
+    status: str
+    message: str
+
+class ADHDDumpRequest(BaseModel):
+    content: str
+
 @app.post("/api/git/sync")
 async def git_sync():
     """Summarizes changes using Gemini, commits, and pushes to origin/dev."""
@@ -124,6 +132,42 @@ async def git_sync():
         return {"status": "success", "message": f"Synced: {commit_message}"}
     except Exception as e:
         logger.exception("Git sync failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/adhd-dump")
+async def adhd_dump(request: ADHDDumpRequest):
+    """Summarizes a quick thought and appends it to README.md."""
+    try:
+        if not request.content.strip():
+            raise HTTPException(status_code=400, detail="Empty content")
+
+        # 1. Summarize with Gemini
+        client = _get_client()
+        prompt = f"""
+        Role: Efficient Task Manager.
+        Task: Clean up and structure the following raw thoughts into a professional 'To-Do' or 'Concern' item.
+        Format: Use a markdown bullet point. Keep it concise.
+        
+        Input:
+        {request.content}
+        """
+        
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=prompt
+        )
+        structured_note = response.text.strip()
+
+        # 2. Append to README.md
+        readme_path = os.path.join(os.path.dirname(__file__), "..", "..", "README.md")
+        with open(readme_path, "a") as f:
+            f.write(f"\n\n### ADHD Dump Case Log ({datetime.now().strftime('%Y-%m-%d %H:%M')})\n")
+            f.write(f"{structured_note}\n")
+        
+        return {"status": "success", "note": structured_note}
+    except Exception as e:
+        logger.exception("ADHD dump failed")
         raise HTTPException(status_code=500, detail=str(e))
 
 
