@@ -1,5 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { RefreshCcw, Check, AlertCircle } from "lucide-react";
 
 export interface LogEntry {
     timestamp: string;
@@ -13,6 +14,33 @@ interface DevLogWindowProps {
 
 export function DevLogWindow({ logs }: DevLogWindowProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncStatus, setSyncStatus] = useState<"idle" | "success" | "error">("idle");
+    const [syncMessage, setSyncMessage] = useState("");
+
+    const handleGitSync = async () => {
+        setIsSyncing(true);
+        setSyncStatus("idle");
+        try {
+            const response = await fetch("http://localhost:8000/api/git/sync", {
+                method: "POST",
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setSyncStatus("success");
+                setSyncMessage(data.message);
+            } else {
+                throw new Error(data.detail || "Sync failed");
+            }
+        } catch (error) {
+            console.error("Git sync error:", error);
+            setSyncStatus("error");
+            setSyncMessage(error instanceof Error ? error.message : "Connection failed");
+        } finally {
+            setIsSyncing(false);
+            setTimeout(() => setSyncStatus("idle"), 5000);
+        }
+    };
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -46,7 +74,33 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
                         Dev_Terminal_v2.0
                     </span>
                 </div>
-                <div className="text-[9px] text-gray-600">SYS_STATUS: ONLINE</div>
+                <div className="flex items-center space-x-3">
+                    <button
+                        onClick={handleGitSync}
+                        disabled={isSyncing}
+                        className={cn(
+                            "flex items-center space-x-1.5 px-2 py-1 rounded border transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+                            syncStatus === "success" ? "border-green-500/50 bg-green-500/10 text-green-400" :
+                                syncStatus === "error" ? "border-red-500/50 bg-red-500/10 text-red-400" :
+                                    "border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-300"
+                        )}
+                        title="Sync changes to GitHub"
+                    >
+                        {isSyncing ? (
+                            <RefreshCcw className="w-3 h-3 animate-spin" />
+                        ) : syncStatus === "success" ? (
+                            <Check className="w-3 h-3" />
+                        ) : syncStatus === "error" ? (
+                            <AlertCircle className="w-3 h-3" />
+                        ) : (
+                            <RefreshCcw className="w-3 h-3" />
+                        )}
+                        <span className="text-[9px] font-bold uppercase tracking-wider">
+                            {isSyncing ? "Syncing..." : syncStatus === "success" ? "Synced" : syncStatus === "error" ? "Failed" : "Sync"}
+                        </span>
+                    </button>
+                    <div className="text-[9px] text-gray-600">SYS_STATUS: ONLINE</div>
+                </div>
             </div>
 
             {/* Log Content */}
@@ -71,8 +125,18 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
             </div>
 
             {/* Footer / Input simulation */}
-            <div className="px-4 py-1 bg-indigo-500/5 text-[9px] text-indigo-400/50 flex justify-between">
-                <span>ANTIGRAVITY_KERNEL_v4.2</span>
+            <div className="px-4 py-1.5 bg-indigo-500/5 border-t border-indigo-500/20 text-[9px] flex justify-between items-center text-indigo-400/50">
+                <div className="flex items-center space-x-2">
+                    <span>ANTIGRAVITY_KERNEL_v4.2</span>
+                    {syncMessage && (
+                        <span className={cn(
+                            "ml-2 px-1 rounded animate-in fade-in slide-in-from-left-2",
+                            syncStatus === "success" ? "text-green-500/70" : "text-red-500/70"
+                        )}>
+                            {">"} {syncMessage}
+                        </span>
+                    )}
+                </div>
                 <span className="animate-pulse">_</span>
             </div>
 
