@@ -8,9 +8,12 @@ from typing import List
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.contract_analyze import analyze_document
+from app.contract_analyze import analyze_document, analyze_document_generator, _get_client
+import subprocess
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +50,85 @@ async def health_check():
     return {"status": "OK"}
 
 
+@app.post("/analyze-contract-stream/")
+async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool = False):
+    """Upload a PDF and run contract analysis with real-time status updates."""
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
+
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF files are supported.")
+
+    temp_dir = tempfile.mkdtemp(prefix="legal-audit-")
+    _, ext = os.path.splitext(file.filename)
+    temp_path = os.path.join(temp_dir, f"{uuid.uuid4()}{ext or '.pdf'}")
+
+    async def event_generator():
+        try:
+            contents = await file.read()
+            with open(temp_path, "wb") as out_file:
+                out_file.write(contents)
+
+            # analyze_document_generator yields JSON strings
+            for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
+                yield f"{stage_data}\n"
+        except Exception as e:
+            logger.exception("Streaming analysis failed")
+            yield json.dumps({"result": {"errors": [{"location": "System", "error": str(e), "suggestion": "Check logs"}]}}) + "\n"
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    return StreamingResponse(event_generator(), media_type="application/x-ndjson")
+
+
+@app.post("/api/git/sync")
+async def git_sync():
+    """Summarizes changes using Gemini, commits, and pushes to origin/dev."""
+    try:
+        # 1. Get git diff
+        diff_proc = subprocess.run(["git", "diff", "HEAD"], capture_output=True, text=True, check=True)
+        diff_text = diff_proc.stdout
+        
+        if not diff_text.strip():
+            # Check for staged changes or untracked files
+            status_proc = subprocess.run(["git", "status", "--short"], capture_output=True, text=True, check=True)
+            if not status_proc.stdout.strip():
+                return {"status": "success", "message": "Nothing to sync. Working tree clean."}
+            diff_text = status_proc.stdout
+
+        # 2. Summarize with Gemini
+        client = _get_client()
+        prompt = f"""
+        Role: Senior Software Engineer.
+        Task: Write a concise, professional git commit message for the following changes.
+        Rules: 
+        1. Keep it under 72 characters if possible.
+        2. Use the imperative mood (e.g., "Add feature" not "Added feature").
+        3. Do not include markdown formatting or quotes.
+        
+        Changes:
+        {diff_text[:5000]} 
+        """
+        
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=prompt
+        )
+        commit_message = response.text.strip().split("\n")[0]
+        
+        # 3. Add, Commit, Push
+        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+        subprocess.run(["git", "push", "origin", "dev"], check=True)
+        
+        return {"status": "success", "message": f"Synced: {commit_message}"}
+    except Exception as e:
+        logger.exception("Git sync failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/analyze-contract/", response_model=AnalyzeResponse)
-async def analyze_contract(file: UploadFile = File(...)):
+async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False):
     """Upload a PDF and run contract analysis."""
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
@@ -65,7 +145,7 @@ async def analyze_contract(file: UploadFile = File(...)):
         with open(temp_path, "wb") as out_file:
             out_file.write(contents)
 
-        result = analyze_document(temp_path)
+        result = analyze_document(temp_path, test_mode=test_mode)
         if not isinstance(result, dict):
             raise RuntimeError(f"Analysis failed to return a valid result: {result!r}")
 
