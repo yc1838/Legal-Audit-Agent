@@ -165,10 +165,15 @@ B. 解决 "Accuracy" (测试集)
 每次修改 Prompt 或架构后，自动跑这 5 个合同，看 AI 能抓出几个。如果不做这个自动化测试，你永远不知道改了 Prompt 是变好了还是变坏了。
 
 
-### ADHD Dump Case Log (2025-12-28 00:30)
-* **Concern:** Potential false positive for spelling error "thefinancial" in Page 2, Section 3(a)(iii). Investigation suggests a PDF parsing/rendering issue where a page break separated "the" and "financial," rather than a missing space in the source text.
 
 
-### ADHD Dump Case Log (2025-12-28 00:33)
-* **Concern:** A typographical spacing error on Page 2 where the words "the" and "financial" are concatenated as "thefinancial" within the financial covenants section.
-* **Solution:** Edit the text on Page 2 to insert the missing space, ensuring the phrase is correctly rendered as "the financial."
+### ADHD Dump Case Log (2025-12-28 00:34)
+Here is the cleaned-up and structured version of your thoughts:
+
+*   **Concern:** Potential false positive regarding the reported spelling error "thefinancial" on Page 2, Section 3(a)(iii). Analysis indicates this is a PDF parsing artifact rather than a scrivener's error; the word "the" ends the previous page and "financial" begins the next. The concatenation likely occurred when the text parser stripped the page break and page number during processing.
+*   **Solution:** Categorize this finding as a false positive and dismiss the request for a manual correction. For future reports, verify the source formatting to ensure that page transitions are not being incorrectly interpreted as merged text.
+
+
+### ADHD Dump Case Log (2025-12-28 00:38)
+* **Concern:** The PDF parsing process strips structural metadata such as page breaks and numbering, causing text from consecutive pages to merge and creating significant spacing anomalies in the downstream output.
+* **Systemic Fix:** Implement a layout-aware PDF extraction layer that injects explicit boundary tokens (e.g., `[NEW_PAGE_MARKER]`) and update the Agent's system architecture to include a pre-processing heuristic that identifies and corrects word-merging at these structural transition points.

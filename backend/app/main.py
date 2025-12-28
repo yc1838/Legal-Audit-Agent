@@ -145,11 +145,17 @@ async def adhd_dump(request: ADHDDumpRequest):
         # 1. Summarize and propose solution with Gemini
         client = _get_client()
         prompt = f"""
-        Role: Efficient Task Manager & Problem Solver.
-        Task: Clean up and structure the following raw thoughts into a professional 'Concern' item and a 'Proposed Solution' or 'Action Item'.
+        Role: Efficient Task Manager & System Architect.
+        Task: Clean up and structure the following raw thoughts into a professional 'Concern' item and a 'Proposed Systemic Solution'.
+        
+        CRITICAL RULES:
+        1. Return ONLY the markdown bullet points. 
+        2. NO introductory text (e.g. "Here are your thoughts").
+        3. The 'Solution' MUST focus on how to improve the Agentic AI system, architecture, or prompts to prevent this concern in the future.
+        
         Format: 
         * **Concern:** [Cleaned up concern]
-        * **Solution:** [Clear, actionable fix or next step]
+        * **Systemic Fix:** [System/Architecture improvement]
         
         Input:
         {request.content}
