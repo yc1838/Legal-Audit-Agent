@@ -67,5 +67,8 @@ backend/.pytest_cache/
 frontend/node_modules/
 frontend/dist/
 frontend/.env
-backend/.*.xlsx
-backend/.*.csv
+
+# Auditing Materials that store locally
+backend/audit_logs.xlsx
+audit_logs.xlsx
+*.xlsx

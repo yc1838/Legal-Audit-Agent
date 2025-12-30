@@ -34,7 +34,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -71,7 +71,7 @@ async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool 
                 out_file.write(contents)
 
             # analyze_document_generator yields JSON strings
-            for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
+            async for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
                 yield f"{stage_data}\n"
         except Exception as e:
             logger.exception("Streaming analysis failed")
@@ -93,16 +93,21 @@ class ADHDDumpRequest(BaseModel):
 async def git_sync():
     """Summarizes changes using Gemini, commits, and pushes to origin/dev."""
     try:
-        # 1. Get git diff
-        diff_proc = subprocess.run(["git", "diff", "HEAD"], capture_output=True, text=True, check=True)
-        diff_text = diff_proc.stdout
-        
-        # 2. Check if there are actually any changes to commit
-        status_proc = subprocess.run(["git", "status", "--short"], capture_output=True, text=True, check=True)
-        if not status_proc.stdout.strip():
-            return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
+        # 0. Determine project root (2 levels up from backend/app/main.py -> backend/app -> backend -> root)
+        # Actually main.py is in backend/app/, so .. is backend, ../.. is legal-audit-agent
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-        # 3. Summarize with Gemini using the diff
+        # 1. Stage all changes first (including untracked files) - FROM PROJECT ROOT
+        subprocess.run(["git", "add", "."], cwd=project_root, check=True)
+
+        # 2. Check if there are staged changes to commit
+        diff_proc = subprocess.run(["git", "diff", "--cached"], cwd=project_root, capture_output=True, text=True, check=True)
+        diff_text = diff_proc.stdout
+
+        if not diff_text.strip():
+             return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
+        
+        # 3. Summarize with Gemini using the staged diff
         client = _get_client()
         prompt = f"""
         Role: Senior Software Engineer.
@@ -123,9 +128,10 @@ async def git_sync():
         commit_message = response.text.strip().split("\n")[0]
         
         # 3. Add, Commit, Push
-        subprocess.run(["git", "add", "."], check=True)
-        subprocess.run(["git", "commit", "-m", commit_message], check=True)
-        subprocess.run(["git", "push", "origin", "dev"], check=True)
+        # Note: We already staged everything in step 1, but running add again doesn't hurt to be sure.
+        subprocess.run(["git", "add", "."], cwd=project_root, check=True)
+        subprocess.run(["git", "commit", "-m", commit_message], cwd=project_root, check=True)
+        subprocess.run(["git", "push", "origin", "dev"], cwd=project_root, check=True)
         
         return {"status": "success", "message": f"Synced: {commit_message}"}
     except Exception as e:
@@ -195,7 +201,7 @@ async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False
         with open(temp_path, "wb") as out_file:
             out_file.write(contents)
 
-        result = analyze_document(temp_path, test_mode=test_mode)
+        result = await analyze_document(temp_path, test_mode=test_mode)
         if not isinstance(result, dict):
             raise RuntimeError(f"Analysis failed to return a valid result: {result!r}")
 

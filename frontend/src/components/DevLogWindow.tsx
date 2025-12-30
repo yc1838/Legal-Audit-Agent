@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { RefreshCcw, Check, AlertCircle } from "lucide-react";
+import { API_BASE_URL } from "@/config";
 
 export interface LogEntry {
     timestamp: string;
@@ -22,7 +23,7 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
         setIsSyncing(true);
         setSyncStatus("idle");
         try {
-            const response = await fetch("http://localhost:8000/api/git/sync", {
+            const response = await fetch(`${API_BASE_URL}/api/git/sync`, {
                 method: "POST",
             });
             const data = await response.json();
@@ -36,9 +37,9 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
             console.error("Git sync error:", error);
             setSyncStatus("error");
             setSyncMessage(error instanceof Error ? error.message : "Connection failed");
+            setTimeout(() => setSyncStatus("idle"), 5000);
         } finally {
             setIsSyncing(false);
-            setTimeout(() => setSyncStatus("idle"), 5000);
         }
     };
 
