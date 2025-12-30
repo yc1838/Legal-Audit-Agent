@@ -189,3 +189,15 @@ Here is the cleaned-up and structured version of your thoughts:
 ### ADHD Dump Case Log (2025-12-28 01:17)
 * **Concern:** High-friction transition from document-based insights to execution, where users must manually bridge the gap between identifying evidence (e.g., in a PDF) and performing complex administrative tasks like entity resolution, calendar coordination, and invitation management.
 * **Systemic Fix:** Implement a Context-Aware Multi-Agent Orchestration layer that integrates UI-level hooks (OCR/Context Capture) with a Tool-Calling Agent. This system should utilize a Named Entity Recognition (NER) module to map "@mentions" to contact databases and a Constraint-Based Scheduling Agent that autonomously queries Calendar APIs to find optimal slots based on "Work Hours" system parameters and existing availability.
+
+
+## System Architecture
+
+The following diagram illustrates the current request lifecycle and component interactions, including the new Parallel Locator Swarm.
+
+![Request Flow Architecture](assets/architecture_request_flow.png)
+
+### Component Interaction
+
+![Component Interaction Architecture](assets/architecture_components.png)
+![Request Flow Architecture screenshot version](assets/image.png)
