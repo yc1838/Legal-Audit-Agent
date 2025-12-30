@@ -12,6 +12,7 @@ export interface AuditError {
     error: string;
     suggestion: string;
     exact_quote?: string;
+    boundingBoxes?: any[];
 }
 
 interface ErrorListPanelProps {

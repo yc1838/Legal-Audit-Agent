@@ -3,7 +3,9 @@ import os
 import logging
 import asyncio
 from typing import Dict, Any
+import re
 
+from app.pdf_locator import find_text_coordinates
 from google import genai
 import openai
 from PyPDF2 import PdfReader
@@ -22,26 +24,125 @@ DEFAULT_OPENAI_MODEL = "gpt-4o"
 # Mock data for "Test Mode" to avoid API costs during UI development.
 # These examples represent typical legal issues found in commercial contracts.
 MOCK_ANALYSIS_RESULT = {
-    "errors": [
-        {
-            "location": "Page 1, Section 1.2",
-            "error": "The term 'Effective Date' is capitalized but not defined in this document or the base agreement.",
-            "suggestion": "Define 'Effective Date' in the definitions section or refer to the definition in the Credit Agreement.",
-            "exact_quote": "Effective Date"
-        },
-        {
-            "location": "Page 4, Section 5.3",
-            "error": "The interest calculation formula appears to have a typo: 'Principal * Rate / 360' is used, but Section 2.1 specifies a 365-day year.",
-            "suggestion": "Update the denominator to 365 to maintain consistency with Section 2.1.",
-            "exact_quote": "Principal * Rate / 360"
-        },
-        {
-            "location": "Page 7, Section 8.1",
-            "error": "Placeholder text '[__]' found in the governing law provision.",
-            "suggestion": "Specify the jurisdiction (e.g., 'New York').",
-            "exact_quote": "[__]"
-        }
-    ]
+  "errors": [
+    {
+      "location": "Page 3, Section 2.1(a)",
+      "error": "The capitalized term \"Amendment\" is used but not defined. The document defines \"this Agreement\" (capitalized) to refer to the First Amendment to Amended and Restated Credit Agreement, so \"Amendment\" should likely be \"Agreement\" for consistency.",
+      "suggestion": "Replace \"this Amendment\" with \"this Agreement\".",
+      "exact_quote": "delivery and performance of this Amendment",
+      "boundingBoxes": [{"x": 72, "y": 150, "width": 200, "height": 12, "page": 3, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 3, Section 3(a)(ii)",
+      "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
+      "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
+      "exact_quote": "certificates as of a recent date of the good standing of each Credit Party",
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 300, "height": 12, "page": 3, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 4, Section 3(a)(iii)",
+      "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
+      "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
+      "exact_quote": "the Borrower is in compliance with the",
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 250, "height": 12, "page": 4, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 5, Section 3(b)",
+      "error": "The condition refers to 'Section 3' for representations and warranties, but the representations and warranties are actually set forth in 'Section 4'. This appears to be a numbering error.",
+      "suggestion": "Change 'Section 3' to 'Section 4'.",
+      "exact_quote": "The representations and warranties set forth in Section 3 shall be true and correct."
+    },
+    {
+      "location": "Page 9",
+      "error": "A placeholder indicates that signature pages are expected to follow, which is a drafting error in a completed document.",
+      "suggestion": "Remove the placeholder or replace it with appropriate text if the document is finalized.",
+      "exact_quote": "[Signature pages to follow]"
+    },
+    {
+      "location": "Page 47, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '13', but it should sequentially be '14' after the preceding page (Page 46) which was '13'.",
+      "suggestion": "Correct the page number to '14'.",
+      "exact_quote": "13"
+    },
+    {
+      "location": "Page 49, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '14', but it should sequentially be '15' after the preceding page (Page 48) which was '14'.",
+      "suggestion": "Correct the page number to '15'.",
+      "exact_quote": "14"
+    },
+    {
+      "location": "Page 54, Article I (Definitions)",
+      "error": "The singular term 'Note' is capitalized and used in the definition of 'Loan Documents' but is not explicitly defined. While 'Notes' (plural) is defined later, consistency requires either 'Note' to be defined or 'Notes' to be used consistently.",
+      "suggestion": "Define 'Note' as the singular of 'Notes' or replace 'each Note' with 'the Notes' in the definition of 'Loan Documents'.",
+      "exact_quote": "each Note"
+    },
+    {
+      "location": "Page 55, Article I (Definitions)",
+      "error": "The capitalized term 'Outstanding Amount' is used in the definition of 'Minimum Collateral Amount' but is not defined.",
+      "suggestion": "Add a definition for 'Outstanding Amount'.",
+      "exact_quote": "Outstanding Amount"
+    },
+    {
+      "location": "Page 60, Article I (Definitions)",
+      "error": "There is a typographical error in 'Sanctioned Peron(s)'. It should be 'Sanctioned Person(s)'.",
+      "suggestion": "Correct 'Peron(s)' to 'Person(s)'.",
+      "exact_quote": "Sanctioned Peron(s)"
+    },
+    {
+      "location": "Page 63, Article I (Definitions)",
+      "error": "The phrase 'for the ratable benefit and the Secured Parties' contains a grammatical error. It should likely be 'for the ratable benefit of the Secured Parties'.",
+      "suggestion": "Change 'benefit and the Secured Parties' to 'benefit of the Secured Parties'.",
+      "exact_quote": "for the ratable benefit and the Secured Parties"
+    },
+    {
+      "location": "Page 65, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '29', but it should sequentially be '30' after the preceding page (Page 63) which was '28'.",
+      "suggestion": "Correct the page number to '30'.",
+      "exact_quote": "29"
+    },
+    {
+      "location": "Page 65, Article I (Definitions)",
+      "error": "The term 'Base Rate SOFR Determination Day' is used, but the defined term is 'Base Rate Term SOFR Determination Day'. This is an inconsistency or typo.",
+      "suggestion": "Replace 'Base Rate SOFR Determination Day' with 'Base Rate Term SOFR Determination Day'.",
+      "exact_quote": "Base Rate SOFR Determination Day"
+    },
+    {
+      "location": "Page 66, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '29', but it should sequentially be '31' after the preceding page (Page 65) which was '29'.",
+      "suggestion": "Correct the page number to '31'.",
+      "exact_quote": "29"
+    },
+    {
+      "location": "Page 67, Article I (Definitions)",
+      "error": "Section 4.2(a) is referenced in the definition of 'U.S. Government Securities Business Day', but Article IV is explicitly 'RESERVED' in this document and does not contain a Section 4.2(a). This is likely an incorrect cross-reference.",
+      "suggestion": "Correct the cross-reference to the appropriate section, e.g., Section 6.2(a).",
+      "exact_quote": "Sections 2.3(a), 2.4(c), 4.2(a) and 5.2"
+    },
+    {
+      "location": "Page 75, Section 2.3(a)",
+      "error": "The text uses '(1) U.S. Government Securities Business Day' where a numerical word 'one' is expected, consistent with other numerical spellings in parentheses (e.g., 'three (3)').",
+      "suggestion": "Change '(1)' to 'one'.",
+      "exact_quote": "no later than (1) U.S. Government Securities Business Day"
+    },
+    {
+      "location": "Page 77, Section 2.4(a) and (b)",
+      "error": "Paragraph (b) 'Mandatory Prepayments' is incorrectly formatted as a continuation of the sentence from paragraph (a) 'Repayment on Termination Date' instead of as a new, distinct sub-section.",
+      "suggestion": "Start ' (b) Mandatory Prepayments.' on a new line and ensure it is properly formatted as a separate sub-section.",
+      "exact_quote": "accrued but unpaid interest thereon (b) Mandatory Prepayments."
+    },
+    {
+      "location": "Page 77, Section 2.4(d)",
+      "error": "The section is marked 'Reserved', indicating a placeholder or an incomplete section.",
+      "suggestion": "Either provide content for this section or explicitly state that it is intentionally left blank if it is not a drafting oversight.",
+      "exact_quote": "(d) Reserved."
+    },
+    {
+      "location": "Page 92, Section 5.9",
+      "error": "Section 4.4(a) is referenced in the indemnity clause, but Article IV is explicitly 'RESERVED' in this document and does not contain a Section 4.4(a). This is likely an incorrect cross-reference.",
+      "suggestion": "Correct the cross-reference to the appropriate section, e.g., Section 2.4(c).",
+      "exact_quote": "Section 4.4(a)"
+    }
+  ]
 }
 
 def _get_gemini_client():
@@ -104,10 +205,10 @@ def _yield_log(level: str, message: str):
         }
     }) + "\n"
 
-def _log_to_excel(model: str, prompt: str, output: str):
+def _log_to_excel(model: str, filename: str, prompt: str, output: str):
     """Logs the analysis session to an Excel file."""
     file_path = "audit_logs.xlsx"
-    headers = ["Timestamp", "Model", "Prompt Snippet", "Full Prompt", "Output"]
+    headers = ["Timestamp", "Model", "Filename", "Prompt Snippet", "Full Prompt", "Output"]
     
     # Truncate prompt for easier viewing in snippet column
     prompt_snippet = (prompt[:100] + "...") if len(prompt) > 100 else prompt
@@ -116,6 +217,9 @@ def _log_to_excel(model: str, prompt: str, output: str):
         if os.path.exists(file_path):
             wb = load_workbook(file_path)
             ws = wb.active
+            # Check if headers match, if not (old file), maybe append column? 
+            # ideally we would check, but for now let's just append row. 
+            # If columns mismatch, it might look weird.
         else:
             wb = Workbook()
             ws = wb.active
@@ -124,6 +228,7 @@ def _log_to_excel(model: str, prompt: str, output: str):
         ws.append([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             model,
+            filename,
             prompt_snippet,
             prompt,
             output
@@ -163,8 +268,34 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
         yield json.dumps({"stage": "finalizing", "message": "Finalizing report..."}) + "\n"
         
         await asyncio.sleep(0.5)
+        
+        await asyncio.sleep(0.5)
         yield _yield_log("INFO", "Analysis successfully completed.")
-        yield json.dumps({"result": MOCK_ANALYSIS_RESULT}) + "\n"
+        
+        # Run locator on mock data too if file exists (or skip if dummy)
+        # For actual file uploads in test mode, we can still run locator
+        mock_data = MOCK_ANALYSIS_RESULT.copy()
+        
+        # Only try to locate if it's a real file we can read, otherwise mock rects?
+        # Since test mode often uses a random PDF, locator might fail to find "Effective Date".
+        # Let's try it anyway so "Test Mode" + "Real PDF" works.
+        yield json.dumps({"stage": "locating", "message": "Locator Swarm: Pinpointing exact text locations..."}) + "\n"
+        yield _yield_log("INFO", "Running Locator Agent on Mock Data...")
+        try:
+            import re
+            for err in mock_data["errors"]:
+                 location = err.get("location", "")
+                 m = re.search(r"Page\s+(\d+)", location, re.IGNORECASE)
+                 if m:
+                     page_num = int(m.group(1))
+                     snippet = err.get("exact_quote", "")
+                     rects = find_text_coordinates(file_path, page_num, snippet)
+                     if rects:
+                         err["boundingBoxes"] = rects
+        except Exception:
+            pass # consistency with non-test mode
+
+        yield json.dumps({"result": mock_data}) + "\n"
         return
 
     try:
@@ -249,7 +380,7 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
         yield _yield_log("INFO", f"Analysis received from {model}.")
         
         # Log to Excel (Non-test mode only)
-        _log_to_excel(model, full_prompt, raw_output)
+        _log_to_excel(model, filename, full_prompt, raw_output)
         
         yield _yield_log("DEBUG", f"Raw AI Output snippet: {raw_output[:100]}...")
 
@@ -261,11 +392,57 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
             
             if isinstance(data, list):
                 yield _yield_log("WARNING", "AI returned list without wrapper. Normalizing...")
-                yield json.dumps({"result": {"errors": data}}) + "\n"
-                return
+                data = {"errors": data}
             
-            error_count = len(data.get("errors", []))
-            yield _yield_log("INFO", f"Pipeline finished. Found {error_count} potential issues.")
+            # --- LOCATOR STEP (PARALLEL SWARM) ---
+            yield json.dumps({"stage": "locating", "message": "Locator Swarm: Pinpointing exact text locations..."}) + "\n"
+            yield _yield_log("INFO", "Dispatching Locator Swarm (Parallel Neighbor Search)...")
+            errors = data.get("errors", [])
+            
+            # Prepare tasks
+            locator_tasks = []
+            for err in errors:
+                import re
+                location = err.get("location", "")
+                m = re.search(r"Page\s+(\d+)", location, re.IGNORECASE)
+                if m:
+                    page_num = int(m.group(1))
+                    snippet = err.get("exact_quote", "")
+                    if snippet and snippet != "[__]":
+                         locator_tasks.append({
+                             "page": page_num,
+                             "text": snippet,
+                             "error_ref": err # Keep reference to update later
+                         })
+            
+            if locator_tasks:
+                 from app.pdf_locator import batch_locate_text
+                 yield _yield_log("DEBUG", f"Swarming {len(locator_tasks)} targets with thread pool...")
+                 
+                 results = batch_locate_text(file_path, locator_tasks)
+                 
+                 # Map results back
+                 # Since we passed objects by reference (error_ref) in the task, and we can access original_task in result
+                 start_time = datetime.now()
+                 success_count = 0
+                 
+                 for res in results:
+                     if res["found"]:
+                         # Update the specific error object
+                         task = res["original_task"]
+                         err_obj = task["error_ref"]
+                         err_obj["boundingBoxes"] = res["rects"]
+                         
+                         # If page was different (drift), maybe update location string?
+                         # Optional: err_obj["location"] += f" (Found on Page {res['page']})"
+                         success_count += 1
+                     else:
+                         # Log failure for debug
+                         task = res['original_task']
+                         # logger.warning(f"Could not locate '{task['text'][:10]}...'")
+
+                 yield _yield_log("INFO", f"Locator Swarm finished. Resolved {success_count}/{len(locator_tasks)} precise locations.")
+
             yield json.dumps({"result": data}) + "\n"
             
         except json.JSONDecodeError as jde:

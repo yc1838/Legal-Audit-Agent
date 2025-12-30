@@ -5,6 +5,13 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { Loader2 } from "lucide-react";
 import { AuditError } from './ErrorListPanel';
 
+// Extend AuditError locally if needed, or better, update ErrorListPanel.tsx
+// But since we are importing, let's fix the interface in ErrorListPanel.tsx first?
+// Wait, I cannot edit imported file's interface here. 
+// I should update ErrorListPanel.tsx first or cast it. 
+// For now, let's assume 'any' or update the other file next.
+// I will proceed with this edit, and then update ErrorListPanel.tsx.
+
 // Configure worker for Vite using CDN to avoid local build issues
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -90,10 +97,44 @@ export const InteractivePDFViewer = forwardRef<{ scrollToPage: (page: number) =>
                                 className="rounded-lg overflow-hidden border border-gray-800"
                             />
 
-                            {/* Overlay for generic error indication on this page */}
+                            {/* Precise Highlights Overlay */}
                             {errors.map((err, errIdx) => {
-                                const match = err.location.match(/Page\s+(\d+)/i);
-                                if (match && parseInt(match[1]) === index + 1 && selectedErrorIndex === errIdx) {
+                                // 1. Check if we should show this error (either it's selected, or we show all?)
+                                // Usually better to show all in a subtle way, and highlight selected strongly.
+                                // For now, let's keep it simple: show all relevant to this page.
+
+                                // Check if this error belongs to this page using boundingBoxes OR location string
+                                const errLocation = err.location || "";
+                                const match = errLocation.match(/Page\s+(\d+)/i);
+                                const pageNum = match ? parseInt(match[1]) : -1;
+
+                                const isSelected = selectedErrorIndex === errIdx;
+
+                                if (pageNum !== index + 1) return null;
+
+                                // Strategy 1: Use Bounding Boxes if available
+                                if (err.boundingBoxes && err.boundingBoxes.length > 0) {
+                                    return err.boundingBoxes.map((rect: any, rIdx: number) => (
+                                        <div
+                                            key={`${errIdx}-${rIdx}`}
+                                            className={`absolute transition-all duration-300 ${isSelected ? 'bg-red-500/40 border-red-500 z-10 animate-pulse' : 'bg-yellow-500/20 border-yellow-500/50'}`}
+                                            style={{
+                                                // Coordinates are in PDF Points (1/72 inch).
+                                                // React-PDF renders at 'scale'.
+                                                // We assumes rect.x/y are correct for the original PDF size.
+                                                // We need to scale them by 'scale'.
+                                                left: `calc(${rect.x}px * ${scale})`,
+                                                top: `calc(${rect.y}px * ${scale})`,
+                                                width: `calc(${rect.width}px * ${scale})`,
+                                                height: `calc(${rect.height}px * ${scale})`,
+                                                borderWidth: isSelected ? '2px' : '1px'
+                                            }}
+                                        />
+                                    ));
+                                }
+
+                                // Strategy 2: Fallback to full page highlight if selected (Original behavior)
+                                if (isSelected) {
                                     return (
                                         <div key={errIdx} className="absolute inset-0 bg-red-500/10 pointer-events-none border-2 border-red-500 animate-pulse rounded-lg" />
                                     );

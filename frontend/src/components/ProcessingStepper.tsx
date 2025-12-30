@@ -1,7 +1,7 @@
-import { CheckCircle2, Circle, Loader2, FileText, Share2, Search, FileCheck } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, FileText, Share2, Search, FileCheck, ScanSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type StageId = "idle" | "extracting" | "distributing" | "analyzing" | "finalizing" | "completed";
+export type StageId = "idle" | "extracting" | "distributing" | "analyzing" | "locating" | "finalizing" | "completed";
 
 interface Stage {
     id: StageId;
@@ -28,6 +28,12 @@ const STAGES: Stage[] = [
         label: "Legal Reviewer",
         description: "AI is auditing clauses and identifying risks...",
         icon: <Search className="w-5 h-5" />,
+    },
+    {
+        id: "locating",
+        label: "Locator Swarm",
+        description: "Scanning PDF for precise highlight coordinates...",
+        icon: <ScanSearch className="w-5 h-5" />,
     },
     {
         id: "finalizing",
