@@ -2,6 +2,13 @@
 
 A monorepo project for analyzing and auditing legal contracts, featuring a Python backend and a React frontend.
 
+## Recent Updates (Dec 2025)
+
+*   **Interactive PDF Viewer**: Replaced static iframe with `react-pdf`. Now supports **click-to-scroll** (clicking an error card scrolls to the exact page) and page highlighting.
+*   **Async Backend**: Refactored the entire analysis pipeline (`contract_analyze.py`) to be fully asynchronous, preventing server stalls during streaming.
+*   **Enhanced UI**: "Detected Risks" panel now features animated error cards and better visual integration with the PDF viewer.
+
+
 ## Project Structure
 
 The project is organized as a monorepo with two main packages:
