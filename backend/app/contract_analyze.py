@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import asyncio
 from typing import Dict
 
 from google import genai
@@ -16,7 +17,9 @@ logger = logging.getLogger(__name__)
 # Constants
 # We use gemini-3-flash-preview (V2 API) for its efficiency and speed in legal document analysis.
 # The V2 SDK (google-genai) is used here for its modern interface.
-MODEL_NAME = "gemini-3-flash-preview" 
+# MODEL_NAME = "gemini-3-flash-preview" 
+MODEL_NAME = "gemini-2.5-flash" 
+
 
 # Mock data for "Test Mode" to avoid API costs during UI development.
 # These examples represent typical legal issues found in commercial contracts.
@@ -25,17 +28,20 @@ MOCK_ANALYSIS_RESULT = {
         {
             "location": "Page 1, Section 1.2",
             "error": "The term 'Effective Date' is capitalized but not defined in this document or the base agreement.",
-            "suggestion": "Define 'Effective Date' in the definitions section or refer to the definition in the Credit Agreement."
+            "suggestion": "Define 'Effective Date' in the definitions section or refer to the definition in the Credit Agreement.",
+            "exact_quote": "Effective Date"
         },
         {
             "location": "Page 4, Section 5.3",
             "error": "The interest calculation formula appears to have a typo: 'Principal * Rate / 360' is used, but Section 2.1 specifies a 365-day year.",
-            "suggestion": "Update the denominator to 365 to maintain consistency with Section 2.1."
+            "suggestion": "Update the denominator to 365 to maintain consistency with Section 2.1.",
+            "exact_quote": "Principal * Rate / 360"
         },
         {
             "location": "Page 7, Section 8.1",
             "error": "Placeholder text '[__]' found in the governing law provision.",
-            "suggestion": "Specify the jurisdiction (e.g., 'New York')."
+            "suggestion": "Specify the jurisdiction (e.g., 'New York').",
+            "exact_quote": "[__]"
         }
     ]
 }
@@ -62,6 +68,7 @@ CRITICAL INSTRUCTIONS:
 1. **Assume Isolation with Common Sense**: Do NOT assume missing definitions exist in other documents. However, IGNORE common commercial lending terms typically defined in a base Credit Agreement (e.g., "Borrower", "Administrative Agent", "Lender", "Business Day", "Dollars", "GAAP", "Material Adverse Effect"). Only flag specific, deal-specific, or unusual capitalized terms that are undefined.
 2. **Logic Check:** Check all math and logic tables.
 3. **Drafting Errors:** Find any placeholders like "[__]" or blank lines that were forgotten.
+4. **Exact Quotes:** For every error, you MUST provide the `exact_quote` from the text that contains the error. This is used for highlighting.
 
 Output Format:
 Return ONLY a valid JSON object with the following structure:
@@ -70,7 +77,8 @@ Return ONLY a valid JSON object with the following structure:
     {
       "location": "Page 3, Section 2.1",
       "error": "Description of the error",
-      "suggestion": "Suggested fix"
+      "suggestion": "Suggested fix",
+      "exact_quote": "Exact text substring to highlight in red"
     }
   ]
 }
@@ -118,9 +126,9 @@ def _log_to_excel(model: str, prompt: str, output: str):
         logger.error(f"Failed to save audit log to Excel: {e}")
 
 
-def analyze_document_generator(file_path: str, test_mode: bool = False):
+async def analyze_document_generator(file_path: str, test_mode: bool = False):
     """
-    Generator that analyzes a PDF and yields status updates and logs.
+    Async Generator that analyzes a PDF and yields status updates and logs.
     """
     filename = os.path.basename(file_path)
     logger.info(f"Starting analysis for: {filename} (Test Mode: {test_mode})")
@@ -130,24 +138,23 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
 
     if test_mode:
         yield _yield_log("INFO", "Test Mode is enabled. Intercepting API calls.")
-        import time
         
         yield _yield_log("DEBUG", "Simulating PDF text extraction...")
-        time.sleep(0.5) 
+        await asyncio.sleep(0.5) 
         yield _yield_log("INFO", "Text extraction complete. Character count: 1240")
         
         yield json.dumps({"stage": "distributing", "message": "Topic Distributor: Routing to Legal Reviewer Agent..."}) + "\n"
         yield _yield_log("INFO", "Topic Distributor selected: legal_reviewer_v1")
         
-        time.sleep(1) 
+        await asyncio.sleep(1) 
         yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Auditing contract logic..."}) + "\n"
         yield _yield_log("INFO", "Legal Reviewer sent content to Gemini Pro model...")
         
-        time.sleep(1) 
+        await asyncio.sleep(1) 
         yield _yield_log("DEBUG", "Gemini returned raw JSON. Validating schema...")
         yield json.dumps({"stage": "finalizing", "message": "Finalizing report..."}) + "\n"
         
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
         yield _yield_log("INFO", "Analysis successfully completed.")
         yield json.dumps({"result": MOCK_ANALYSIS_RESULT}) + "\n"
         return
@@ -193,11 +200,13 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Critiquing contract clauses with Gemini..."}) + "\n"
         yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to Gemini API...")
         
-        response = client.models.generate_content(
+        # Run sync API call in threadpool to avoid blocking event loop
+        loop = asyncio.get_running_loop()
+        response = await loop.run_in_executor(None, lambda: client.models.generate_content(
             model=MODEL_NAME,
             contents=f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---",
             config={"response_mime_type": "application/json"}
-        )
+        ))
         
         raw_output = response.text
         yield _yield_log("INFO", "Analysis received from Gemini.")
@@ -243,11 +252,11 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
             }]
         }}) + "\n"
 
-def analyze_document(file_path: str, test_mode: bool = False) -> Dict:
-    """Legacy wrapper for synchronous calls (e.g. tests)."""
+async def analyze_document(file_path: str, test_mode: bool = False) -> Dict:
+    """Wrapper for async generator (for non-streaming use cases)."""
     gen = analyze_document_generator(file_path, test_mode)
     last_res = {}
-    for item in gen:
+    async for item in gen:
         data = json.loads(item)
         if "result" in data:
             last_res = data["result"]

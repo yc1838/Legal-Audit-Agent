@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProcessingStepper, StageId } from "@/components/ProcessingStepper";
 import { DevLogWindow, LogEntry } from "@/components/DevLogWindow";
 import { ADHDDumpWindow } from "@/components/ADHDDumpWindow";
-import { PDFPreview } from "@/components/PDFPreview";
+import { InteractivePDFViewer } from "@/components/InteractivePDFViewer";
 import { ErrorListPanel, AuditError } from "@/components/ErrorListPanel";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { API_BASE_URL } from '@/config';
@@ -22,6 +22,7 @@ import { Loader2, Bug } from "lucide-react";
 
 function App() {
   const [auditErrors, setAuditErrors] = useState<AuditError[]>([]);
+  const [selectedErrorIndex, setSelectedErrorIndex] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [testMode, setTestMode] = useState(true);
 
@@ -43,6 +44,7 @@ function App() {
 
   const clearState = () => {
     setAuditErrors([]);
+    setSelectedErrorIndex(null);
     setLogs([]);
     setIsProcessing(true);
     setCurrentStage("extracting");
@@ -204,12 +206,20 @@ function App() {
               {file && (
                 <div className="w-full h-[800px] flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                   <div className="flex-1 h-full border border-gray-800 rounded-xl overflow-hidden">
-                    <PDFPreview file={file} />
+                    <InteractivePDFViewer
+                      file={file}
+                      errors={auditErrors}
+                      selectedErrorIndex={selectedErrorIndex}
+                    />
                   </div>
 
                   {auditErrors.length > 0 && (
                     <div className="w-[400px] h-full shrink-0 border border-gray-800 rounded-xl overflow-hidden shadow-xl bg-gray-950">
-                      <ErrorListPanel errors={auditErrors} />
+                      <ErrorListPanel
+                        errors={auditErrors}
+                        onSelectError={setSelectedErrorIndex}
+                        selectedIndex={selectedErrorIndex}
+                      />
                     </div>
                   )}
                 </div>

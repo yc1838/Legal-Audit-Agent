@@ -71,7 +71,7 @@ async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool 
                 out_file.write(contents)
 
             # analyze_document_generator yields JSON strings
-            for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
+            async for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
                 yield f"{stage_data}\n"
         except Exception as e:
             logger.exception("Streaming analysis failed")
@@ -201,7 +201,7 @@ async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False
         with open(temp_path, "wb") as out_file:
             out_file.write(contents)
 
-        result = analyze_document(temp_path, test_mode=test_mode)
+        result = await analyze_document(temp_path, test_mode=test_mode)
         if not isinstance(result, dict):
             raise RuntimeError(f"Analysis failed to return a valid result: {result!r}")
 

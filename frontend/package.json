@@ -15,8 +15,10 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.395.0",
+    "pdfjs-dist": "^4.4.168",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-pdf": "^10.2.0",
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {
@@ -29,8 +31,8 @@
     "eslint-plugin-react-refresh": "^0.4.3",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.0.2",
-    "vite": "^7.3.0",
-    "tailwindcss-animate": "^1.0.7"
+    "vite": "^7.3.0"
   }
 }

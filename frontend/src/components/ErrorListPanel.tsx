@@ -11,13 +11,16 @@ export interface AuditError {
     location: string;
     error: string;
     suggestion: string;
+    exact_quote?: string;
 }
 
 interface ErrorListPanelProps {
     errors: AuditError[];
+    onSelectError?: (index: number) => void;
+    selectedIndex?: number | null;
 }
 
-export function ErrorListPanel({ errors }: ErrorListPanelProps) {
+export function ErrorListPanel({ errors, onSelectError, selectedIndex }: ErrorListPanelProps) {
     if (!errors || errors.length === 0) return null;
 
     return (
@@ -34,7 +37,14 @@ export function ErrorListPanel({ errors }: ErrorListPanelProps) {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {errors.map((item, index) => (
-                    <Card key={index} className="bg-gray-900 border-gray-800 shadow-lg animate-in slide-in-from-right-10 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
+                    <Card
+                        key={index}
+                        className={`cursor-pointer transition-all duration-300 border-gray-800 shadow-lg animate-in slide-in-from-right-10 
+                            ${selectedIndex === index ? 'bg-gray-800 border-indigo-500 scale-[1.02] shadow-indigo-500/20 ring-1 ring-indigo-500' : 'bg-gray-900 hover:bg-gray-800 hover:scale-[1.02]'}
+                        `}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                        onClick={() => onSelectError && onSelectError(index)}
+                    >
                         <CardHeader className="pb-2">
                             <CardTitle className="text-xs font-mono text-gray-500 uppercase flex items-center gap-2">
                                 <MapPin className="h-3 w-3" />
