@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProcessingStepper, StageId } from "@/components/ProcessingStepper";
 import { DevLogWindow, LogEntry } from "@/components/DevLogWindow";
 import { ADHDDumpWindow } from "@/components/ADHDDumpWindow";
+import { PDFPreview } from "@/components/PDFPreview";
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { API_BASE_URL } from '@/config';
 import { Loader2, Bug } from "lucide-react";
 
 function App() {
@@ -56,7 +59,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`http://localhost:8000/analyze-contract-stream/?test_mode=${testMode}`, {
+      const response = await fetch(`${API_BASE_URL}/analyze-contract-stream/?test_mode=${testMode}`, {
         method: "POST",
         body: formData,
       });
@@ -112,113 +115,123 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex overflow-hidden">
-      {/* Main Panel */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-y-auto custom-scrollbar">
-        <Card className="w-full max-w-2xl bg-gray-900 border-gray-800 shadow-2xl overflow-hidden my-8">
-          <div className="h-1.5 w-full bg-gray-800">
-            {isProcessing && (
-              <div className="h-full bg-indigo-500 animate-[loading_2s_infinite]" style={{ width: '40%' }}></div>
-            )}
-          </div>
-          <CardHeader className="pt-8 relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={`absolute top-4 right-4 transition-colors ${showDevLogs ? 'text-cyan-400 bg-cyan-950/20' : 'text-gray-600'}`}
-              onClick={() => setShowDevLogs(!showDevLogs)}
-              title="Toggle Dev Logs"
-            >
-              <Bug className="h-5 w-5" />
-            </Button>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              Legal Document AI Analyst
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Advanced multi-agent pipeline for legal risk detection.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="grid w-full items-center gap-2">
-              <Label htmlFor="contract-file" className="text-gray-300">Upload Contract (.pdf)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="contract-file"
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  className="bg-gray-800 border-gray-700 focus:border-indigo-500 transition-colors"
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-950 text-white flex overflow-hidden">
+        {/* Main Panel */}
+
+
+
+        <div className={`flex-1 flex flex-col items-center p-4 overflow-y-auto custom-scrollbar ${file ? 'justify-start pt-8' : 'justify-center'}`}>
+          <Card className={`w-full bg-gray-900 border-gray-800 shadow-2xl overflow-hidden mb-8 transition-all duration-500 ${file ? 'max-w-6xl' : 'max-w-2xl my-8'}`}>
+            <div className="h-1.5 w-full bg-gray-800">
+              {isProcessing && (
+                <div className="h-full bg-indigo-500 animate-[loading_2s_infinite]" style={{ width: '40%' }}></div>
+              )}
+            </div>
+            <CardHeader className="pt-8 relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`absolute top-4 right-4 transition-colors ${showDevLogs ? 'text-cyan-400 bg-cyan-950/20' : 'text-gray-600'}`}
+                onClick={() => setShowDevLogs(!showDevLogs)}
+                title="Toggle Dev Logs"
+              >
+                <Bug className="h-5 w-5" />
+              </Button>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                Legal Document AI Analyst
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Advanced multi-agent pipeline for legal risk detection.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="grid w-full items-center gap-2">
+                <Label htmlFor="contract-file" className="text-gray-300">Upload Contract (.pdf)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="contract-file"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="bg-gray-800 border-gray-700 focus:border-indigo-500 transition-colors"
+                    disabled={isProcessing}
+                  />
+                  <Button
+                    onClick={handleAudit}
+                    disabled={isProcessing || !file}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Auditing...
+                      </>
+                    ) : "Audit Contract"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                <input
+                  type="checkbox"
+                  id="test-mode"
+                  checked={testMode}
+                  onChange={(e) => setTestMode(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
                   disabled={isProcessing}
                 />
-                <Button
-                  onClick={handleAudit}
-                  disabled={isProcessing || !file}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Auditing...
-                    </>
-                  ) : "Audit Contract"}
-                </Button>
+                <Label htmlFor="test-mode" className="text-xs text-gray-400 cursor-pointer select-none">
+                  Test Mode (uses mock data, no API cost)
+                </Label>
               </div>
-            </div>
 
-            <div className="flex items-center space-x-2 bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
-              <input
-                type="checkbox"
-                id="test-mode"
-                checked={testMode}
-                onChange={(e) => setTestMode(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
-                disabled={isProcessing}
-              />
-              <Label htmlFor="test-mode" className="text-xs text-gray-400 cursor-pointer select-none">
-                Test Mode (uses mock data, no API cost)
-              </Label>
-            </div>
+              {isProcessing || currentStage !== "idle" ? (
+                <div className="bg-gray-800/20 rounded-xl p-6 border border-gray-800">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Pipeline Status</h3>
+                  <ProcessingStepper currentStage={currentStage} statusMessage={statusMessage} />
+                </div>
+              ) : null}
 
-            {isProcessing || currentStage !== "idle" ? (
-              <div className="bg-gray-800/20 rounded-xl p-6 border border-gray-800">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Pipeline Status</h3>
-                <ProcessingStepper currentStage={currentStage} statusMessage={statusMessage} />
-              </div>
-            ) : null}
+              {file && (
+                <div className="w-full h-[800px] border border-gray-800 rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <PDFPreview file={file} />
+                </div>
+              )}
 
-            {auditResult && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <Label className="text-gray-400 uppercase text-[10px] font-bold tracking-widest">Analysis Result</Label>
-                <Textarea
-                  placeholder="Audit results will be displayed here."
-                  value={auditResult}
-                  readOnly
-                  className="min-h-[300px] bg-gray-950 border-gray-800 text-green-400 font-mono text-sm focus:ring-0 resize-none whitespace-pre"
-                />
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="bg-gray-800/30 border-t border-gray-800 py-4">
-            <p className="text-[10px] text-gray-500">
-              AI-driven legal analysis can contain errors. Not a substitute for professional legal advice.
-            </p>
-          </CardFooter>
-        </Card>
-      </div>
-
-      {/* Sidebar with Dev Logs and ADHD Dump */}
-      {showDevLogs && (
-        <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden bg-black">
-          <div className="flex-1 overflow-hidden min-h-[40%]">
-            <DevLogWindow logs={logs} />
-          </div>
-          <div className="h-[250px] shrink-0">
-            <ADHDDumpWindow />
-          </div>
+              {auditResult && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <Label className="text-gray-400 uppercase text-[10px] font-bold tracking-widest">Analysis Result</Label>
+                  <Textarea
+                    placeholder="Audit results will be displayed here."
+                    value={auditResult}
+                    readOnly
+                    className="min-h-[300px] bg-gray-950 border-gray-800 text-green-400 font-mono text-sm focus:ring-0 resize-none whitespace-pre"
+                  />
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="bg-gray-800/30 border-t border-gray-800 py-4">
+              <p className="text-[10px] text-gray-500">
+                AI-driven legal analysis can contain errors. Not a substitute for professional legal advice.
+              </p>
+            </CardFooter>
+          </Card>
         </div>
-      )}
 
-      <style>{`
+        {/* Sidebar with Dev Logs and ADHD Dump */}
+        {showDevLogs && (
+          <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden bg-black">
+            <div className="flex-1 overflow-hidden min-h-[40%]">
+              <DevLogWindow logs={logs} />
+            </div>
+            <div className="h-[250px] shrink-0">
+              <ADHDDumpWindow />
+            </div>
+          </div>
+        )}
+
+        <style>{`
         @keyframes loading {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(250%); }
@@ -231,7 +244,8 @@ function App() {
           border-radius: 10px;
         }
       `}</style>
-    </div>
+      </div>
+    </ErrorBoundary >
   );
 }
 

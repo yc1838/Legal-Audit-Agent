@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Send, Trash2, CheckCircle2 } from "lucide-react";
+import { API_BASE_URL } from "@/config";
 
 export function ADHDDumpWindow() {
     const [content, setContent] = useState("");
@@ -13,7 +14,7 @@ export function ADHDDumpWindow() {
         setIsSubmitting(true);
         setStatus("idle");
         try {
-            const response = await fetch("http://localhost:8000/api/adhd-dump", {
+            const response = await fetch(`${API_BASE_URL}/api/adhd-dump`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content }),

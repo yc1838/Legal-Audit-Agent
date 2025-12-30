@@ -156,24 +156,34 @@ def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield _yield_log("INFO", "Initializing Gemini 2.0 Flash client...")
         client = _get_client()
         
-        yield _yield_log("DEBUG", f"Opening file stream: {file_path}")
-        with open(file_path, "rb") as f:
-            reader = PdfReader(f)
-            text = ""
-            page_count = len(reader.pages)
-            yield _yield_log("INFO", f"PDF loaded. Total pages discovered: {page_count}")
-            
-            for i, page in enumerate(reader.pages):
-                extracted = page.extract_text() or ""
-                # Insert a clear page marker so the AI handles cross-page text correctly
-                text += f"\n\n--- [START OF PAGE {i+1}] ---\n"
-                text += extracted
-                yield _yield_log("DEBUG", f"Page {i+1} processed. ({len(extracted)} chars)")
+        try:
+            yield _yield_log("DEBUG", f"Opening file stream: {file_path}")
+            with open(file_path, "rb") as f:
+                try:
+                    reader = PdfReader(f)
+                    text = ""
+                    page_count = len(reader.pages)
+                    yield _yield_log("INFO", f"PDF loaded. Total pages discovered: {page_count}")
+                    
+                    for i, page in enumerate(reader.pages):
+                        extracted = page.extract_text() or ""
+                        # Insert a clear page marker so the AI handles cross-page text correctly
+                        text += f"\n\n--- [START OF PAGE {i+1}] ---\n"
+                        text += extracted
+                        yield _yield_log("DEBUG", f"Page {i+1} processed. ({len(extracted)} chars)")
+                except Exception as pdf_err:
+                     yield _yield_log("ERROR", f"PDF Read Error: {str(pdf_err)}")
+                     yield json.dumps({"result": {"errors": [{"location": "Document", "error": f"Corrupt or unreadable PDF: {str(pdf_err)}", "suggestion": "Try repairing the PDF or export it again."}]}}) + "\n"
+                     return
         
-        if not text.strip():
-             yield _yield_log("ERROR", "Extraction failed. PDF text layer is empty.")
-             yield json.dumps({"result": {"errors": [{"location": "Document", "error": "Could not extract text from PDF.", "suggestion": "Ensure PDF is text-based, not scanned image."}]}}) + "\n"
-             return
+            if not text.strip():
+                 yield _yield_log("ERROR", "Extraction failed. PDF text layer is empty.")
+                 yield json.dumps({"result": {"errors": [{"location": "Document", "error": "Could not extract text from PDF.", "suggestion": "Ensure PDF is text-based, not scanned image."}]}}) + "\n"
+                 return
+        except Exception as e:
+            # Catch file access errors (though less likely with tempfile)
+            yield _yield_log("ERROR", f"File Access Error: {str(e)}")
+            raise e
 
         yield _yield_log("INFO", f"Extraction successful. Total content: {len(text)} characters.")
         
