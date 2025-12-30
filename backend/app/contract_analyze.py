@@ -2,9 +2,10 @@ import json
 import os
 import logging
 import asyncio
-from typing import Dict
+from typing import Dict, Any
 
 from google import genai
+import openai
 from PyPDF2 import PdfReader
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
@@ -15,11 +16,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-# We use gemini-3-flash-preview (V2 API) for its efficiency and speed in legal document analysis.
-# The V2 SDK (google-genai) is used here for its modern interface.
-# MODEL_NAME = "gemini-3-flash-preview" 
-MODEL_NAME = "gemini-2.5-flash" 
-
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_OPENAI_MODEL = "gpt-4o"
 
 # Mock data for "Test Mode" to avoid API costs during UI development.
 # These examples represent typical legal issues found in commercial contracts.
@@ -46,7 +44,7 @@ MOCK_ANALYSIS_RESULT = {
     ]
 }
 
-def _get_client():
+def _get_gemini_client():
     """Returns a Gemini Client using API keys from environment variables."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -57,6 +55,16 @@ def _get_client():
          raise RuntimeError("GEMINI_API_KEY not set in environment variables.")
     
     return genai.Client(api_key=api_key)
+
+def _get_openai_client():
+    """Returns an OpenAI Client using API keys from environment variables."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not api_key:
+         logger.error("API Key Missing: OPENAI_API_KEY must be set.")
+         raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+    
+    return openai.OpenAI(api_key=api_key)
 
 # The prompt defines the AI's persona and strict output requirements.
 # It uses a few-shot style instruction to ensure valid JSON format.
@@ -126,12 +134,12 @@ def _log_to_excel(model: str, prompt: str, output: str):
         logger.error(f"Failed to save audit log to Excel: {e}")
 
 
-async def analyze_document_generator(file_path: str, test_mode: bool = False):
+async def analyze_document_generator(file_path: str, test_mode: bool = False, model: str = DEFAULT_GEMINI_MODEL):
     """
     Async Generator that analyzes a PDF and yields status updates and logs.
     """
     filename = os.path.basename(file_path)
-    logger.info(f"Starting analysis for: {filename} (Test Mode: {test_mode})")
+    logger.info(f"Starting analysis for: {filename} (Test Mode: {test_mode}, Model: {model})")
 
     yield _yield_log("INFO", f"Initializing analysis pipeline for {filename}")
     yield json.dumps({"stage": "extracting", "message": f"Extracting text from {filename}..."}) + "\n"
@@ -147,11 +155,11 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield _yield_log("INFO", "Topic Distributor selected: legal_reviewer_v1")
         
         await asyncio.sleep(1) 
-        yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Auditing contract logic..."}) + "\n"
-        yield _yield_log("INFO", "Legal Reviewer sent content to Gemini Pro model...")
+        yield json.dumps({"stage": "analyzing", "message": f"Legal Reviewer: Auditing contract logic with {model}..."}) + "\n"
+        yield _yield_log("INFO", f"Legal Reviewer sent content to {model}...")
         
         await asyncio.sleep(1) 
-        yield _yield_log("DEBUG", "Gemini returned raw JSON. Validating schema...")
+        yield _yield_log("DEBUG", f"{model} returned raw JSON. Validating schema...")
         yield json.dumps({"stage": "finalizing", "message": "Finalizing report..."}) + "\n"
         
         await asyncio.sleep(0.5)
@@ -160,8 +168,22 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
         return
 
     try:
-        yield _yield_log("INFO", "Initializing Gemini 2.0 Flash client...")
-        client = _get_client()
+        is_gemini = "gemini" in model.lower()
+        is_openai = "gpt" in model.lower() or "o1" in model.lower() or "o3" in model.lower()
+        
+        client: Any = None
+        if is_gemini:
+             yield _yield_log("INFO", f"Initializing Gemini client for {model}...")
+             client = _get_gemini_client()
+        elif is_openai:
+             yield _yield_log("INFO", f"Initializing OpenAI client for {model}...")
+             client = _get_openai_client()
+        else:
+             # Fallback or error
+             yield _yield_log("WARNING", f"Unknown model '{model}'. Defaulting to Gemini.")
+             model = DEFAULT_GEMINI_MODEL
+             is_gemini = True
+             client = _get_gemini_client()
         
         try:
             yield _yield_log("DEBUG", f"Opening file stream: {file_path}")
@@ -197,23 +219,37 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield json.dumps({"stage": "distributing", "message": "Topic Distributor: Parsing sections and routing tasks..."}) + "\n"
         yield _yield_log("INFO", "Analyzing contract metadata and structure...")
         
-        yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Critiquing contract clauses with Gemini..."}) + "\n"
-        yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to Gemini API...")
+        yield json.dumps({"stage": "analyzing", "message": f"Legal Reviewer: Critiquing contract clauses with {model}..."}) + "\n"
+        yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to {model} API...")
         
         # Run sync API call in threadpool to avoid blocking event loop
         loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(None, lambda: client.models.generate_content(
-            model=MODEL_NAME,
-            contents=f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---",
-            config={"response_mime_type": "application/json"}
-        ))
         
-        raw_output = response.text
-        yield _yield_log("INFO", "Analysis received from Gemini.")
+        full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
+        raw_output = ""
+        
+        if is_gemini:
+            response = await loop.run_in_executor(None, lambda: client.models.generate_content(
+                model=model,
+                contents=full_prompt,
+                config={"response_mime_type": "application/json"}
+            ))
+            raw_output = response.text
+        elif is_openai:
+            response = await loop.run_in_executor(None, lambda: client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful legal assistant. Output valid JSON only."}, # System prompt slightly redundant but safe
+                    {"role": "user", "content": full_prompt}
+                ],
+                response_format={"type": "json_object"}
+            ))
+            raw_output = response.choices[0].message.content
+
+        yield _yield_log("INFO", f"Analysis received from {model}.")
         
         # Log to Excel (Non-test mode only)
-        full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
-        _log_to_excel(MODEL_NAME, full_prompt, raw_output)
+        _log_to_excel(model, full_prompt, raw_output)
         
         yield _yield_log("DEBUG", f"Raw AI Output snippet: {raw_output[:100]}...")
 

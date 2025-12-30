@@ -25,6 +25,7 @@ function App() {
   const [selectedErrorIndex, setSelectedErrorIndex] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [testMode, setTestMode] = useState(true);
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
   // Processing States
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,7 +63,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analyze-contract-stream/?test_mode=${testMode}`, {
+      const response = await fetch(`${API_BASE_URL}/analyze-contract-stream/?test_mode=${testMode}&model=${selectedModel}`, {
         method: "POST",
         body: formData,
       });
@@ -167,10 +168,22 @@ function App() {
                     className="bg-gray-800 border-gray-700 focus:border-indigo-500 transition-colors"
                     disabled={isProcessing}
                   />
+
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-gray-700"
+                    disabled={isProcessing}
+                    title="Select AI Model"
+                  >
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                  </select>
+
                   <Button
                     onClick={handleAudit}
                     disabled={isProcessing || !file}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8 shrink-0"
                   >
                     {isProcessing ? (
                       <>
