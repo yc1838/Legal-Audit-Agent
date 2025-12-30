@@ -26,25 +26,25 @@ DEFAULT_OPENAI_MODEL = "gpt-4o"
 MOCK_ANALYSIS_RESULT = {
   "errors": [
     {
-      "location": "Page 3, Section 2.1(a)",
+      "location": "Page 1, Section 2.1(a)",
       "error": "The capitalized term \"Amendment\" is used but not defined. The document defines \"this Agreement\" (capitalized) to refer to the First Amendment to Amended and Restated Credit Agreement, so \"Amendment\" should likely be \"Agreement\" for consistency.",
       "suggestion": "Replace \"this Amendment\" with \"this Agreement\".",
       "exact_quote": "delivery and performance of this Amendment",
-      "boundingBoxes": [{"x": 72, "y": 150, "width": 200, "height": 12, "page": 3, "page_width": 595, "page_height": 842}]
+      "boundingBoxes": [{"x": 72, "y": 150, "width": 200, "height": 12, "page": 1, "page_width": 595, "page_height": 842}]
     },
     {
-      "location": "Page 3, Section 3(a)(ii)",
+      "location": "Page 2, Section 3(a)(ii)",
       "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
       "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
       "exact_quote": "certificates as of a recent date of the good standing of each Credit Party",
-      "boundingBoxes": [{"x": 72, "y": 700, "width": 300, "height": 12, "page": 3, "page_width": 595, "page_height": 842}]
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 300, "height": 12, "page": 2, "page_width": 595, "page_height": 842}]
     },
     {
-      "location": "Page 4, Section 3(a)(iii)",
+      "location": "Page 2, Section 3(a)(iii)",
       "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
       "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
       "exact_quote": "the Borrower is in compliance with the",
-      "boundingBoxes": [{"x": 72, "y": 700, "width": 250, "height": 12, "page": 4, "page_width": 595, "page_height": 842}]
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 250, "height": 12, "page": 2, "page_width": 595, "page_height": 842}]
     },
     {
       "location": "Page 5, Section 3(b)",
@@ -292,8 +292,21 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
                      rects = find_text_coordinates(file_path, page_num, snippet)
                      if rects:
                          err["boundingBoxes"] = rects
-        except Exception:
-            pass # consistency with non-test mode
+                     # Fallback: If locator didn't find anything (common in test mode with mismatched files),
+                     # inject a mock bounding box so the UI has something to show.
+                     elif "boundingBoxes" not in err:
+                         err["boundingBoxes"] = [{
+                             "x": 100,
+                             "y": 100 + (page_num * 20 % 500), # Deterministic "random" position
+                             "width": 200,
+                             "height": 20,
+                             "page": page_num,
+                             "page_width": 595,
+                             "page_height": 842
+                         }]
+        except Exception as e:
+            # consistency with non-test mode, but maybe log it
+            logger.warning(f"Mock locator failed: {e}")
 
         yield json.dumps({"result": mock_data}) + "\n"
         return
