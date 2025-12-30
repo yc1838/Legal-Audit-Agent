@@ -15,12 +15,13 @@ import { ProcessingStepper, StageId } from "@/components/ProcessingStepper";
 import { DevLogWindow, LogEntry } from "@/components/DevLogWindow";
 import { ADHDDumpWindow } from "@/components/ADHDDumpWindow";
 import { PDFPreview } from "@/components/PDFPreview";
+import { ErrorListPanel, AuditError } from "@/components/ErrorListPanel";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { API_BASE_URL } from '@/config';
 import { Loader2, Bug } from "lucide-react";
 
 function App() {
-  const [auditResult, setAuditResult] = useState("");
+  const [auditErrors, setAuditErrors] = useState<AuditError[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [testMode, setTestMode] = useState(true);
 
@@ -41,7 +42,7 @@ function App() {
   };
 
   const clearState = () => {
-    setAuditResult("");
+    setAuditErrors([]);
     setLogs([]);
     setIsProcessing(true);
     setCurrentStage("extracting");
@@ -92,7 +93,10 @@ function App() {
             } else if (data.log) {
               setLogs(prev => [...prev, data.log]);
             } else if (data.result) {
-              setAuditResult(JSON.stringify(data.result, null, 2));
+              // Handle structured result
+              if (data.result.errors) {
+                setAuditErrors(data.result.errors);
+              }
               setCurrentStage("completed");
             }
           } catch (e) {
@@ -102,7 +106,11 @@ function App() {
       }
     } catch (error) {
       console.error("Error auditing contract:", error);
-      setAuditResult("Error: Could not connect to the server.");
+      setAuditErrors([{
+        location: "System",
+        error: "Could not connect to the server.",
+        suggestion: "Check if backend is running."
+      }]);
       setCurrentStage("idle");
       setLogs(prev => [...prev, {
         timestamp: new Date().toLocaleTimeString(),
@@ -194,22 +202,22 @@ function App() {
               ) : null}
 
               {file && (
-                <div className="w-full h-[800px] border border-gray-800 rounded-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <PDFPreview file={file} />
+                <div className="w-full h-[800px] flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <div className="flex-1 h-full border border-gray-800 rounded-xl overflow-hidden">
+                    <PDFPreview file={file} />
+                  </div>
+
+                  {auditErrors.length > 0 && (
+                    <div className="w-[400px] h-full shrink-0 border border-gray-800 rounded-xl overflow-hidden shadow-xl bg-gray-950">
+                      <ErrorListPanel errors={auditErrors} />
+                    </div>
+                  )}
                 </div>
               )}
 
-              {auditResult && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <Label className="text-gray-400 uppercase text-[10px] font-bold tracking-widest">Analysis Result</Label>
-                  <Textarea
-                    placeholder="Audit results will be displayed here."
-                    value={auditResult}
-                    readOnly
-                    className="min-h-[300px] bg-gray-950 border-gray-800 text-green-400 font-mono text-sm focus:ring-0 resize-none whitespace-pre"
-                  />
-                </div>
-              )}
+
+
+              {/* Removed Textarea for results, replaced by ErrorListPanel sidebar */}
             </CardContent>
             <CardFooter className="bg-gray-800/30 border-t border-gray-800 py-4">
               <p className="text-[10px] text-gray-500">
@@ -219,9 +227,11 @@ function App() {
           </Card>
         </div>
 
+
+
         {/* Sidebar with Dev Logs and ADHD Dump */}
         {showDevLogs && (
-          <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden bg-black">
+          <div className="w-[450px] h-screen animate-in slide-in-from-right duration-500 ease-out border-l border-indigo-500/20 shadow-[-10px_0_30px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden bg-black z-30">
             <div className="flex-1 overflow-hidden min-h-[40%]">
               <DevLogWindow logs={logs} />
             </div>

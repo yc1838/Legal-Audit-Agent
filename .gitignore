@@ -69,4 +69,6 @@ frontend/dist/
 frontend/.env
 
 # Auditing Materials that store locally
-audit_logs.xlsx 
+backend/audit_logs.xlsx
+audit_logs.xlsx
+*.xlsx
