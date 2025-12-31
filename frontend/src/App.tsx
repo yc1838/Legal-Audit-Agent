@@ -25,6 +25,7 @@ function App() {
   const [selectedErrorIndex, setSelectedErrorIndex] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [testMode, setTestMode] = useState(true);
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
 
   // Processing States
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,7 +34,7 @@ function App() {
 
   // Developer logs
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [showDevLogs, setShowDevLogs] = useState(true);
+  const [showDevLogs, setShowDevLogs] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -62,7 +63,7 @@ function App() {
     formData.append("file", file);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/analyze-contract-stream/?test_mode=${testMode}`, {
+      const response = await fetch(`${API_BASE_URL}/analyze-contract-stream/?test_mode=${testMode}&model=${selectedModel}`, {
         method: "POST",
         body: formData,
       });
@@ -131,7 +132,7 @@ function App() {
 
 
 
-        <div className={`flex-1 flex flex-col items-center p-4 overflow-y-auto custom-scrollbar ${file ? 'justify-start pt-8' : 'justify-center'}`}>
+        <div className={`flex-1 min-w-0 flex flex-col items-start p-4 overflow-y-auto overflow-x-auto custom-scrollbar ${file ? 'justify-start pt-8' : 'justify-center'}`}>
           <Card className={`w-full bg-gray-900 border-gray-800 shadow-2xl overflow-hidden mb-8 transition-all duration-500 ${file ? 'max-w-6xl' : 'max-w-2xl my-8'}`}>
             <div className="h-1.5 w-full bg-gray-800">
               {isProcessing && (
@@ -167,10 +168,22 @@ function App() {
                     className="bg-gray-800 border-gray-700 focus:border-indigo-500 transition-colors"
                     disabled={isProcessing}
                   />
+
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-gray-700"
+                    disabled={isProcessing}
+                    title="Select AI Model"
+                  >
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gpt-4o">GPT-4o</option>
+                  </select>
+
                   <Button
                     onClick={handleAudit}
                     disabled={isProcessing || !file}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8 shrink-0"
                   >
                     {isProcessing ? (
                       <>
@@ -205,7 +218,7 @@ function App() {
 
               {file && (
                 <div className="w-full h-[800px] flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <div className="flex-1 h-full border border-gray-800 rounded-xl overflow-hidden">
+                  <div className="flex-1 h-full border border-gray-800 rounded-xl overflow-hidden min-w-0 bg-gray-950/50">
                     <InteractivePDFViewer
                       file={file}
                       errors={auditErrors}
@@ -213,15 +226,14 @@ function App() {
                     />
                   </div>
 
-                  {auditErrors.length > 0 && (
-                    <div className="w-[400px] h-full shrink-0 border border-gray-800 rounded-xl overflow-hidden shadow-xl bg-gray-950">
-                      <ErrorListPanel
-                        errors={auditErrors}
-                        onSelectError={setSelectedErrorIndex}
-                        selectedIndex={selectedErrorIndex}
-                      />
-                    </div>
-                  )}
+                  <div className="w-[300px] md:w-[350px] lg:w-[400px] shrink-0 h-full border border-gray-800 rounded-xl overflow-hidden shadow-xl bg-gray-950 transition-all duration-300">
+                    <ErrorListPanel
+                      errors={auditErrors}
+                      onSelectError={setSelectedErrorIndex}
+                      selectedIndex={selectedErrorIndex}
+                      isProcessing={isProcessing}
+                    />
+                  </div>
                 </div>
               )}
 

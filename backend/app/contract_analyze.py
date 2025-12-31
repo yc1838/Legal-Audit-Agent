@@ -2,9 +2,12 @@ import json
 import os
 import logging
 import asyncio
-from typing import Dict
+from typing import Dict, Any
+import re
 
+from app.pdf_locator import find_text_coordinates
 from google import genai
+import openai
 from PyPDF2 import PdfReader
 from openpyxl import Workbook, load_workbook
 from datetime import datetime
@@ -15,38 +18,134 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Constants
-# We use gemini-3-flash-preview (V2 API) for its efficiency and speed in legal document analysis.
-# The V2 SDK (google-genai) is used here for its modern interface.
-# MODEL_NAME = "gemini-3-flash-preview" 
-MODEL_NAME = "gemini-2.5-flash" 
-
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_OPENAI_MODEL = "gpt-4o"
 
 # Mock data for "Test Mode" to avoid API costs during UI development.
 # These examples represent typical legal issues found in commercial contracts.
 MOCK_ANALYSIS_RESULT = {
-    "errors": [
-        {
-            "location": "Page 1, Section 1.2",
-            "error": "The term 'Effective Date' is capitalized but not defined in this document or the base agreement.",
-            "suggestion": "Define 'Effective Date' in the definitions section or refer to the definition in the Credit Agreement.",
-            "exact_quote": "Effective Date"
-        },
-        {
-            "location": "Page 4, Section 5.3",
-            "error": "The interest calculation formula appears to have a typo: 'Principal * Rate / 360' is used, but Section 2.1 specifies a 365-day year.",
-            "suggestion": "Update the denominator to 365 to maintain consistency with Section 2.1.",
-            "exact_quote": "Principal * Rate / 360"
-        },
-        {
-            "location": "Page 7, Section 8.1",
-            "error": "Placeholder text '[__]' found in the governing law provision.",
-            "suggestion": "Specify the jurisdiction (e.g., 'New York').",
-            "exact_quote": "[__]"
-        }
-    ]
+  "errors": [
+    {
+      "location": "Page 1, Section 2.1(a)",
+      "error": "The capitalized term \"Amendment\" is used but not defined. The document defines \"this Agreement\" (capitalized) to refer to the First Amendment to Amended and Restated Credit Agreement, so \"Amendment\" should likely be \"Agreement\" for consistency.",
+      "suggestion": "Replace \"this Amendment\" with \"this Agreement\".",
+      "exact_quote": "delivery and performance of this Amendment",
+      "boundingBoxes": [{"x": 72, "y": 150, "width": 200, "height": 12, "page": 1, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 2, Section 3(a)(ii)",
+      "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
+      "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
+      "exact_quote": "certificates as of a recent date of the good standing of each Credit Party",
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 300, "height": 12, "page": 2, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 2, Section 3(a)(iii)",
+      "error": "The sentence ends abruptly and carries over to the next page without proper continuation, indicating a drafting error or forgotten placeholder.",
+      "suggestion": "Complete the sentence or ensure proper pagination and sentence flow.",
+      "exact_quote": "the Borrower is in compliance with the",
+      "boundingBoxes": [{"x": 72, "y": 700, "width": 250, "height": 12, "page": 2, "page_width": 595, "page_height": 842}]
+    },
+    {
+      "location": "Page 5, Section 3(b)",
+      "error": "The condition refers to 'Section 3' for representations and warranties, but the representations and warranties are actually set forth in 'Section 4'. This appears to be a numbering error.",
+      "suggestion": "Change 'Section 3' to 'Section 4'.",
+      "exact_quote": "The representations and warranties set forth in Section 3 shall be true and correct."
+    },
+    {
+      "location": "Page 9",
+      "error": "A placeholder indicates that signature pages are expected to follow, which is a drafting error in a completed document.",
+      "suggestion": "Remove the placeholder or replace it with appropriate text if the document is finalized.",
+      "exact_quote": "[Signature pages to follow]"
+    },
+    {
+      "location": "Page 47, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '13', but it should sequentially be '14' after the preceding page (Page 46) which was '13'.",
+      "suggestion": "Correct the page number to '14'.",
+      "exact_quote": "13"
+    },
+    {
+      "location": "Page 49, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '14', but it should sequentially be '15' after the preceding page (Page 48) which was '14'.",
+      "suggestion": "Correct the page number to '15'.",
+      "exact_quote": "14"
+    },
+    {
+      "location": "Page 54, Article I (Definitions)",
+      "error": "The singular term 'Note' is capitalized and used in the definition of 'Loan Documents' but is not explicitly defined. While 'Notes' (plural) is defined later, consistency requires either 'Note' to be defined or 'Notes' to be used consistently.",
+      "suggestion": "Define 'Note' as the singular of 'Notes' or replace 'each Note' with 'the Notes' in the definition of 'Loan Documents'.",
+      "exact_quote": "each Note"
+    },
+    {
+      "location": "Page 55, Article I (Definitions)",
+      "error": "The capitalized term 'Outstanding Amount' is used in the definition of 'Minimum Collateral Amount' but is not defined.",
+      "suggestion": "Add a definition for 'Outstanding Amount'.",
+      "exact_quote": "Outstanding Amount"
+    },
+    {
+      "location": "Page 60, Article I (Definitions)",
+      "error": "There is a typographical error in 'Sanctioned Peron(s)'. It should be 'Sanctioned Person(s)'.",
+      "suggestion": "Correct 'Peron(s)' to 'Person(s)'.",
+      "exact_quote": "Sanctioned Peron(s)"
+    },
+    {
+      "location": "Page 63, Article I (Definitions)",
+      "error": "The phrase 'for the ratable benefit and the Secured Parties' contains a grammatical error. It should likely be 'for the ratable benefit of the Secured Parties'.",
+      "suggestion": "Change 'benefit and the Secured Parties' to 'benefit of the Secured Parties'.",
+      "exact_quote": "for the ratable benefit and the Secured Parties"
+    },
+    {
+      "location": "Page 65, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '29', but it should sequentially be '30' after the preceding page (Page 63) which was '28'.",
+      "suggestion": "Correct the page number to '30'.",
+      "exact_quote": "29"
+    },
+    {
+      "location": "Page 65, Article I (Definitions)",
+      "error": "The term 'Base Rate SOFR Determination Day' is used, but the defined term is 'Base Rate Term SOFR Determination Day'. This is an inconsistency or typo.",
+      "suggestion": "Replace 'Base Rate SOFR Determination Day' with 'Base Rate Term SOFR Determination Day'.",
+      "exact_quote": "Base Rate SOFR Determination Day"
+    },
+    {
+      "location": "Page 66, Article I (Definitions)",
+      "error": "There is a pagination error. The page number is '29', but it should sequentially be '31' after the preceding page (Page 65) which was '29'.",
+      "suggestion": "Correct the page number to '31'.",
+      "exact_quote": "29"
+    },
+    {
+      "location": "Page 67, Article I (Definitions)",
+      "error": "Section 4.2(a) is referenced in the definition of 'U.S. Government Securities Business Day', but Article IV is explicitly 'RESERVED' in this document and does not contain a Section 4.2(a). This is likely an incorrect cross-reference.",
+      "suggestion": "Correct the cross-reference to the appropriate section, e.g., Section 6.2(a).",
+      "exact_quote": "Sections 2.3(a), 2.4(c), 4.2(a) and 5.2"
+    },
+    {
+      "location": "Page 75, Section 2.3(a)",
+      "error": "The text uses '(1) U.S. Government Securities Business Day' where a numerical word 'one' is expected, consistent with other numerical spellings in parentheses (e.g., 'three (3)').",
+      "suggestion": "Change '(1)' to 'one'.",
+      "exact_quote": "no later than (1) U.S. Government Securities Business Day"
+    },
+    {
+      "location": "Page 77, Section 2.4(a) and (b)",
+      "error": "Paragraph (b) 'Mandatory Prepayments' is incorrectly formatted as a continuation of the sentence from paragraph (a) 'Repayment on Termination Date' instead of as a new, distinct sub-section.",
+      "suggestion": "Start ' (b) Mandatory Prepayments.' on a new line and ensure it is properly formatted as a separate sub-section.",
+      "exact_quote": "accrued but unpaid interest thereon (b) Mandatory Prepayments."
+    },
+    {
+      "location": "Page 77, Section 2.4(d)",
+      "error": "The section is marked 'Reserved', indicating a placeholder or an incomplete section.",
+      "suggestion": "Either provide content for this section or explicitly state that it is intentionally left blank if it is not a drafting oversight.",
+      "exact_quote": "(d) Reserved."
+    },
+    {
+      "location": "Page 92, Section 5.9",
+      "error": "Section 4.4(a) is referenced in the indemnity clause, but Article IV is explicitly 'RESERVED' in this document and does not contain a Section 4.4(a). This is likely an incorrect cross-reference.",
+      "suggestion": "Correct the cross-reference to the appropriate section, e.g., Section 2.4(c).",
+      "exact_quote": "Section 4.4(a)"
+    }
+  ]
 }
 
-def _get_client():
+def _get_gemini_client():
     """Returns a Gemini Client using API keys from environment variables."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -57,6 +156,16 @@ def _get_client():
          raise RuntimeError("GEMINI_API_KEY not set in environment variables.")
     
     return genai.Client(api_key=api_key)
+
+def _get_openai_client():
+    """Returns an OpenAI Client using API keys from environment variables."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    
+    if not api_key:
+         logger.error("API Key Missing: OPENAI_API_KEY must be set.")
+         raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
+    
+    return openai.OpenAI(api_key=api_key)
 
 # The prompt defines the AI's persona and strict output requirements.
 # It uses a few-shot style instruction to ensure valid JSON format.
@@ -96,10 +205,10 @@ def _yield_log(level: str, message: str):
         }
     }) + "\n"
 
-def _log_to_excel(model: str, prompt: str, output: str):
+def _log_to_excel(model: str, filename: str, prompt: str, output: str):
     """Logs the analysis session to an Excel file."""
     file_path = "audit_logs.xlsx"
-    headers = ["Timestamp", "Model", "Prompt Snippet", "Full Prompt", "Output"]
+    headers = ["Timestamp", "Model", "Filename", "Prompt Snippet", "Full Prompt", "Output"]
     
     # Truncate prompt for easier viewing in snippet column
     prompt_snippet = (prompt[:100] + "...") if len(prompt) > 100 else prompt
@@ -108,6 +217,9 @@ def _log_to_excel(model: str, prompt: str, output: str):
         if os.path.exists(file_path):
             wb = load_workbook(file_path)
             ws = wb.active
+            # Check if headers match, if not (old file), maybe append column? 
+            # ideally we would check, but for now let's just append row. 
+            # If columns mismatch, it might look weird.
         else:
             wb = Workbook()
             ws = wb.active
@@ -116,6 +228,7 @@ def _log_to_excel(model: str, prompt: str, output: str):
         ws.append([
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             model,
+            filename,
             prompt_snippet,
             prompt,
             output
@@ -126,12 +239,12 @@ def _log_to_excel(model: str, prompt: str, output: str):
         logger.error(f"Failed to save audit log to Excel: {e}")
 
 
-async def analyze_document_generator(file_path: str, test_mode: bool = False):
+async def analyze_document_generator(file_path: str, test_mode: bool = False, model: str = DEFAULT_GEMINI_MODEL):
     """
     Async Generator that analyzes a PDF and yields status updates and logs.
     """
     filename = os.path.basename(file_path)
-    logger.info(f"Starting analysis for: {filename} (Test Mode: {test_mode})")
+    logger.info(f"Starting analysis for: {filename} (Test Mode: {test_mode}, Model: {model})")
 
     yield _yield_log("INFO", f"Initializing analysis pipeline for {filename}")
     yield json.dumps({"stage": "extracting", "message": f"Extracting text from {filename}..."}) + "\n"
@@ -147,21 +260,74 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield _yield_log("INFO", "Topic Distributor selected: legal_reviewer_v1")
         
         await asyncio.sleep(1) 
-        yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Auditing contract logic..."}) + "\n"
-        yield _yield_log("INFO", "Legal Reviewer sent content to Gemini Pro model...")
+        yield json.dumps({"stage": "analyzing", "message": f"Legal Reviewer: Auditing contract logic with {model}..."}) + "\n"
+        yield _yield_log("INFO", f"Legal Reviewer sent content to {model}...")
         
         await asyncio.sleep(1) 
-        yield _yield_log("DEBUG", "Gemini returned raw JSON. Validating schema...")
+        yield _yield_log("DEBUG", f"{model} returned raw JSON. Validating schema...")
         yield json.dumps({"stage": "finalizing", "message": "Finalizing report..."}) + "\n"
         
         await asyncio.sleep(0.5)
+        
+        await asyncio.sleep(0.5)
         yield _yield_log("INFO", "Analysis successfully completed.")
-        yield json.dumps({"result": MOCK_ANALYSIS_RESULT}) + "\n"
+        
+        # Run locator on mock data too if file exists (or skip if dummy)
+        # For actual file uploads in test mode, we can still run locator
+        mock_data = MOCK_ANALYSIS_RESULT.copy()
+        
+        # Only try to locate if it's a real file we can read, otherwise mock rects?
+        # Since test mode often uses a random PDF, locator might fail to find "Effective Date".
+        # Let's try it anyway so "Test Mode" + "Real PDF" works.
+        yield json.dumps({"stage": "locating", "message": "Locator Swarm: Pinpointing exact text locations..."}) + "\n"
+        yield _yield_log("INFO", "Running Locator Agent on Mock Data...")
+        try:
+            import re
+            for err in mock_data["errors"]:
+                 location = err.get("location", "")
+                 m = re.search(r"Page\s+(\d+)", location, re.IGNORECASE)
+                 if m:
+                     page_num = int(m.group(1))
+                     snippet = err.get("exact_quote", "")
+                     rects = find_text_coordinates(file_path, page_num, snippet)
+                     if rects:
+                         err["boundingBoxes"] = rects
+                     # Fallback: If locator didn't find anything (common in test mode with mismatched files),
+                     # inject a mock bounding box so the UI has something to show.
+                     elif "boundingBoxes" not in err:
+                         err["boundingBoxes"] = [{
+                             "x": 100,
+                             "y": 100 + (page_num * 20 % 500), # Deterministic "random" position
+                             "width": 200,
+                             "height": 20,
+                             "page": page_num,
+                             "page_width": 595,
+                             "page_height": 842
+                         }]
+        except Exception as e:
+            # consistency with non-test mode, but maybe log it
+            logger.warning(f"Mock locator failed: {e}")
+
+        yield json.dumps({"result": mock_data}) + "\n"
         return
 
     try:
-        yield _yield_log("INFO", "Initializing Gemini 2.0 Flash client...")
-        client = _get_client()
+        is_gemini = "gemini" in model.lower()
+        is_openai = "gpt" in model.lower() or "o1" in model.lower() or "o3" in model.lower()
+        
+        client: Any = None
+        if is_gemini:
+             yield _yield_log("INFO", f"Initializing Gemini client for {model}...")
+             client = _get_gemini_client()
+        elif is_openai:
+             yield _yield_log("INFO", f"Initializing OpenAI client for {model}...")
+             client = _get_openai_client()
+        else:
+             # Fallback or error
+             yield _yield_log("WARNING", f"Unknown model '{model}'. Defaulting to Gemini.")
+             model = DEFAULT_GEMINI_MODEL
+             is_gemini = True
+             client = _get_gemini_client()
         
         try:
             yield _yield_log("DEBUG", f"Opening file stream: {file_path}")
@@ -197,23 +363,37 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
         yield json.dumps({"stage": "distributing", "message": "Topic Distributor: Parsing sections and routing tasks..."}) + "\n"
         yield _yield_log("INFO", "Analyzing contract metadata and structure...")
         
-        yield json.dumps({"stage": "analyzing", "message": "Legal Reviewer: Critiquing contract clauses with Gemini..."}) + "\n"
-        yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to Gemini API...")
+        yield json.dumps({"stage": "analyzing", "message": f"Legal Reviewer: Critiquing contract clauses with {model}..."}) + "\n"
+        yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to {model} API...")
         
         # Run sync API call in threadpool to avoid blocking event loop
         loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(None, lambda: client.models.generate_content(
-            model=MODEL_NAME,
-            contents=f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---",
-            config={"response_mime_type": "application/json"}
-        ))
         
-        raw_output = response.text
-        yield _yield_log("INFO", "Analysis received from Gemini.")
+        full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
+        raw_output = ""
+        
+        if is_gemini:
+            response = await loop.run_in_executor(None, lambda: client.models.generate_content(
+                model=model,
+                contents=full_prompt,
+                config={"response_mime_type": "application/json"}
+            ))
+            raw_output = response.text
+        elif is_openai:
+            response = await loop.run_in_executor(None, lambda: client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are a helpful legal assistant. Output valid JSON only."}, # System prompt slightly redundant but safe
+                    {"role": "user", "content": full_prompt}
+                ],
+                response_format={"type": "json_object"}
+            ))
+            raw_output = response.choices[0].message.content
+
+        yield _yield_log("INFO", f"Analysis received from {model}.")
         
         # Log to Excel (Non-test mode only)
-        full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
-        _log_to_excel(MODEL_NAME, full_prompt, raw_output)
+        _log_to_excel(model, filename, full_prompt, raw_output)
         
         yield _yield_log("DEBUG", f"Raw AI Output snippet: {raw_output[:100]}...")
 
@@ -225,11 +405,57 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False):
             
             if isinstance(data, list):
                 yield _yield_log("WARNING", "AI returned list without wrapper. Normalizing...")
-                yield json.dumps({"result": {"errors": data}}) + "\n"
-                return
+                data = {"errors": data}
             
-            error_count = len(data.get("errors", []))
-            yield _yield_log("INFO", f"Pipeline finished. Found {error_count} potential issues.")
+            # --- LOCATOR STEP (PARALLEL SWARM) ---
+            yield json.dumps({"stage": "locating", "message": "Locator Swarm: Pinpointing exact text locations..."}) + "\n"
+            yield _yield_log("INFO", "Dispatching Locator Swarm (Parallel Neighbor Search)...")
+            errors = data.get("errors", [])
+            
+            # Prepare tasks
+            locator_tasks = []
+            for err in errors:
+                import re
+                location = err.get("location", "")
+                m = re.search(r"Page\s+(\d+)", location, re.IGNORECASE)
+                if m:
+                    page_num = int(m.group(1))
+                    snippet = err.get("exact_quote", "")
+                    if snippet and snippet != "[__]":
+                         locator_tasks.append({
+                             "page": page_num,
+                             "text": snippet,
+                             "error_ref": err # Keep reference to update later
+                         })
+            
+            if locator_tasks:
+                 from app.pdf_locator import batch_locate_text
+                 yield _yield_log("DEBUG", f"Swarming {len(locator_tasks)} targets with thread pool...")
+                 
+                 results = batch_locate_text(file_path, locator_tasks)
+                 
+                 # Map results back
+                 # Since we passed objects by reference (error_ref) in the task, and we can access original_task in result
+                 start_time = datetime.now()
+                 success_count = 0
+                 
+                 for res in results:
+                     if res["found"]:
+                         # Update the specific error object
+                         task = res["original_task"]
+                         err_obj = task["error_ref"]
+                         err_obj["boundingBoxes"] = res["rects"]
+                         
+                         # If page was different (drift), maybe update location string?
+                         # Optional: err_obj["location"] += f" (Found on Page {res['page']})"
+                         success_count += 1
+                     else:
+                         # Log failure for debug
+                         task = res['original_task']
+                         # logger.warning(f"Could not locate '{task['text'][:10]}...'")
+
+                 yield _yield_log("INFO", f"Locator Swarm finished. Resolved {success_count}/{len(locator_tasks)} precise locations.")
+
             yield json.dumps({"result": data}) + "\n"
             
         except json.JSONDecodeError as jde:
