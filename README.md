@@ -7,6 +7,9 @@ A monorepo project for analyzing and auditing legal contracts, featuring a Pytho
 *   **Interactive PDF Viewer**: Replaced static iframe with `react-pdf`. Now supports **click-to-scroll** (clicking an error card scrolls to the exact page) and page highlighting.
 *   **Async Backend**: Refactored the entire analysis pipeline (`contract_analyze.py`) to be fully asynchronous, preventing server stalls during streaming.
 *   **Enhanced UI**: "Detected Risks" panel now features animated error cards and better visual integration with the PDF viewer.
+*   **Parallel Locator Swarm**: Implemented a parallel locator swarm for faster and more efficient error finding.
+*   **Enhanced Visualization**: Improved `InteractivePDFViewer` with responsive highlighting scaling and better text location parsing.
+*   **Robust Testing**: Added mock data fallback for the locator to ensure UI feedback even when exact matches typically fail during testing.
 
 
 ## Project Structure
@@ -201,3 +204,7 @@ The following diagram illustrates the current request lifecycle and component in
 
 ![Component Interaction Architecture](assets/architecture_components.png)
 ![Request Flow Architecture screenshot version](assets/image.png)
+
+### Future System Architecture
+![Future Architecture](backend/assets/future_architecture.svg)
+![Excli style future architecture](backend/assets/ex_style_future_architecture.svg)
