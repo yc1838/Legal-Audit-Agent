@@ -207,4 +207,4 @@ The following diagram illustrates the current request lifecycle and component in
 
 ### Future System Architecture
 ![Future Architecture](backend/assets/future_architecture.svg)
-![Excli style future architecture](backend/assets/ex_style_future_architecture.svg)
+![Excli style future architecture](backend/assets/ex_style_graphRAG.svg)
