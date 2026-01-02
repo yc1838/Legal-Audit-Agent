@@ -478,9 +478,9 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
             }]
         }}) + "\n"
 
-async def analyze_document(file_path: str, test_mode: bool = False) -> Dict:
+async def analyze_document(file_path: str, test_mode: bool = False, model: str = DEFAULT_GEMINI_MODEL) -> Dict:
     """Wrapper for async generator (for non-streaming use cases)."""
-    gen = analyze_document_generator(file_path, test_mode)
+    gen = analyze_document_generator(file_path, test_mode, model=model)
     last_res = {}
     async for item in gen:
         data = json.loads(item)
