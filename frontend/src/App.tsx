@@ -176,8 +176,23 @@ function App() {
                     disabled={isProcessing}
                     title="Select AI Model"
                   >
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gpt-4o">GPT-4o</option>
+                    <optgroup label="Gemini Models">
+                      <option value="gemini-3-pro-preview">Gemini 3.0 Pro Preview</option>
+                      <option value="gemini-3-flash-preview">Gemini 3.0 Flash Preview</option>
+                      <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                      <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option>
+                      <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                      <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</option>
+                    </optgroup>
+                    <optgroup label="OpenAI Models">
+                      <option value="gpt-5.2-2025-12-11">GPT-5.2 (Dec 2025)</option>
+                      <option value="gpt-5-mini-2025-08-07">GPT-5 Mini (Aug 2025)</option>
+                      <option value="gpt-5-nano-2025-08-07">GPT-5 Nano (Aug 2025)</option>
+                      <option value="o3-deep-research-2025-06-26">o3 Deep Research</option>
+                      <option value="o4-mini-deep-research-2025-06-26">o4 Mini Deep Research</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                      <option value="gpt-4o-mini-2024-07-18">GPT-4o Mini</option>
+                    </optgroup>
                   </select>
 
                   <Button

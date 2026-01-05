@@ -313,7 +313,7 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
 
     try:
         is_gemini = "gemini" in model.lower()
-        is_openai = "gpt" in model.lower() or "o1" in model.lower() or "o3" in model.lower()
+        is_openai = "gpt" in model.lower() or "o1" in model.lower() or "o3" in model.lower() or "o4" in model.lower()
         
         client: Any = None
         if is_gemini:
