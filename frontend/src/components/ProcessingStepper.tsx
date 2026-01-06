@@ -72,8 +72,8 @@ export function ProcessingStepper({ currentStage, statusMessage }: ProcessingSte
                         {index !== STAGES.length - 1 && (
                             <div
                                 className={cn(
-                                    "absolute left-4 top-10 w-0.5 h-10 -ml-px transition-colors duration-500",
-                                    isCompleted ? "bg-indigo-500" : "bg-gray-700"
+                                    "absolute left-4 top-10 w-px h-10 -ml-px transition-all duration-1000",
+                                    isCompleted ? "bg-gradient-to-b from-white/30 to-white/10" : "bg-white/5"
                                 )}
                             />
                         )}
@@ -81,20 +81,20 @@ export function ProcessingStepper({ currentStage, statusMessage }: ProcessingSte
                         {/* Icon Circle */}
                         <div
                             className={cn(
-                                "relative flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-500 scale-100",
+                                "relative flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-700 z-10",
                                 isCompleted
-                                    ? "bg-indigo-500 border-indigo-500 text-white"
+                                    ? "bg-white/10 border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)] backdrop-blur-md"
                                     : isActive
-                                        ? "border-indigo-400 text-indigo-400 shadow-[0_0_15px_rgba(129,140,248,0.5)] scale-110"
-                                        : "border-gray-600 text-gray-600"
+                                        ? "bg-white/5 border-blue-400/30 text-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.2)] scale-110"
+                                        : "bg-white/0 border-white/10 text-gray-600"
                             )}
                         >
                             {isCompleted ? (
-                                <CheckCircle2 className="w-5 h-5" />
+                                <CheckCircle2 className="w-5 h-5 drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
                             ) : isActive ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-200" />
                             ) : (
-                                <Circle className="w-4 h-4 fill-current opacity-20" />
+                                <Circle className="w-4 h-4 fill-current opacity-10" />
                             )}
                         </div>
 
@@ -103,20 +103,20 @@ export function ProcessingStepper({ currentStage, statusMessage }: ProcessingSte
                             <div className="flex items-center space-x-2">
                                 <span
                                     className={cn(
-                                        "text-sm font-semibold transition-colors duration-500",
-                                        isActive ? "text-indigo-400" : isCompleted ? "text-white" : "text-gray-500"
+                                        "text-sm font-medium tracking-wide transition-colors duration-500",
+                                        isActive ? "text-blue-300 drop-shadow-[0_0_8px_rgba(147,197,253,0.3)]" : isCompleted ? "text-white/80" : "text-gray-500/50"
                                     )}
                                 >
                                     {stage.label}
                                 </span>
                                 {isActive && (
-                                    <span className="flex h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
+                                    <span className="flex h-1.5 w-1.5 rounded-full bg-blue-300 animate-pulse shadow-[0_0_8px_#93c5fd]" />
                                 )}
                             </div>
                             <p
                                 className={cn(
-                                    "text-xs transition-colors duration-500",
-                                    isActive ? "text-gray-300" : "text-gray-500"
+                                    "text-xs transition-colors duration-500 font-light",
+                                    isActive ? "text-blue-200/70" : "text-gray-500/40"
                                 )}
                             >
                                 {isActive ? statusMessage || stage.description : stage.description}

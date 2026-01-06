@@ -127,16 +127,16 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-950 text-white flex overflow-hidden">
+      <div className="min-h-screen liquid-mesh-bg text-white flex overflow-hidden font-sans selection:bg-purple-500/30">
         {/* Main Panel */}
 
 
 
-        <div className={`flex-1 min-w-0 flex flex-col items-start p-4 overflow-y-auto overflow-x-auto custom-scrollbar ${file ? 'justify-start pt-8' : 'justify-center'}`}>
-          <Card className={`w-full bg-gray-900 border-gray-800 shadow-2xl overflow-hidden mb-8 transition-all duration-500 ${file ? 'max-w-6xl' : 'max-w-2xl my-8'}`}>
-            <div className="h-1.5 w-full bg-gray-800">
+        <div className={`flex-1 min-w-0 flex flex-col items-start p-6 overflow-y-auto overflow-x-auto custom-scrollbar ${file ? 'justify-start pt-8' : 'justify-center'}`}>
+          <Card className={`w-full glass-card border-0 transition-all duration-700 ${file ? 'max-w-7xl' : 'max-w-2xl my-8'}`}>
+            <div className="h-0.5 w-full bg-white/5">
               {isProcessing && (
-                <div className="h-full bg-indigo-500 animate-[loading_2s_infinite]" style={{ width: '40%' }}></div>
+                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-[loading_2s_infinite]" style={{ width: '40%' }}></div>
               )}
             </div>
             <CardHeader className="pt-8 relative">
@@ -147,13 +147,16 @@ function App() {
                 onClick={() => setShowDevLogs(!showDevLogs)}
                 title="Toggle Dev Logs"
               >
-                <Bug className="h-5 w-5" />
+                <Bug className="h-5 w-5 hover:text-white transition-colors" />
               </Button>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                Legal Document AI Analyst
+              <CardTitle className="text-5xl font-extralight tracking-tight text-center pb-2">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400 drop-shadow-lg">
+                  Legal AI
+                </span>
+                <span className="text-lg font-light text-gray-400 ml-4 tracking-widest uppercase">Analyst</span>
               </CardTitle>
-              <CardDescription className="text-gray-400">
-                Advanced multi-agent pipeline for legal risk detection.
+              <CardDescription className="text-gray-400 text-center text-md font-light">
+                Secure. Intelligent. Liquid.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6">
@@ -165,14 +168,14 @@ function App() {
                     type="file"
                     accept=".pdf"
                     onChange={handleFileChange}
-                    className="bg-gray-800 border-gray-700 focus:border-indigo-500 transition-colors"
+                    className="glass-input text-gray-200 file:bg-white/10 file:text-white file:border-0 file:rounded-full file:px-4 file:mr-4 hover:file:bg-white/20 transition-all rounded-2xl"
                     disabled={isProcessing}
                   />
 
                   <select
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 text-white text-sm rounded-md px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-gray-700"
+                    className="glass-input text-white text-sm rounded-2xl px-4 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all hover:bg-white/5 cursor-pointer appearance-none"
                     disabled={isProcessing}
                     title="Select AI Model"
                   >
@@ -198,14 +201,14 @@ function App() {
                   <Button
                     onClick={handleAudit}
                     disabled={isProcessing || !file}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all px-8 shrink-0"
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-full font-medium shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all px-8 shrink-0 backdrop-blur-md"
                   >
                     {isProcessing ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Auditing...
+                        Analyzing...
                       </>
-                    ) : "Audit Contract"}
+                    ) : "Start Analysis"}
                   </Button>
                 </div>
               </div>
@@ -225,8 +228,8 @@ function App() {
               </div>
 
               {isProcessing || currentStage !== "idle" ? (
-                <div className="bg-gray-800/20 rounded-xl p-6 border border-gray-800">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Pipeline Status</h3>
+                <div className="glass-input rounded-2xl p-6 border-0">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-4 text-center">Processing Pipeline</h3>
                   <ProcessingStepper currentStage={currentStage} statusMessage={statusMessage} />
                 </div>
               ) : null}
@@ -241,7 +244,7 @@ function App() {
                     />
                   </div>
 
-                  <div className="w-[300px] md:w-[350px] lg:w-[400px] shrink-0 h-full border border-gray-800 rounded-xl overflow-hidden shadow-xl bg-gray-950 transition-all duration-300">
+                  <div className="w-[300px] md:w-[350px] lg:w-[400px] shrink-0 h-full rounded-2xl overflow-hidden glass-card transition-all duration-300">
                     <ErrorListPanel
                       errors={auditErrors}
                       onSelectError={setSelectedErrorIndex}
