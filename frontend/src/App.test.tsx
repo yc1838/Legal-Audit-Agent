@@ -1,6 +1,5 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from './App';
-import React from 'react';
 import { vi } from 'vitest';
 
 // Mock react-pdf because it breaks in JSDOM

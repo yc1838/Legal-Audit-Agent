@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ProcessingStepper, StageId } from "@/components/ProcessingStepper";
 import { DevLogWindow, LogEntry } from "@/components/DevLogWindow";
 import { ADHDDumpWindow } from "@/components/ADHDDumpWindow";

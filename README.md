@@ -158,6 +158,7 @@ Also fix the problem that AI constantly look get the definition is missing or no
 ### Add functionality of, change the product to be a completely legal financial contract review product. The lawyer will be able to review contracts on this app, while the systems runs on the background, highlight those for example data consistencies on maybe a right side bar (showing position in right side bar, click when lawyer finish whatever she was focusing on, and then it jumps to the actual position). This is important because i realized 1. legal is so strict there is no way we can completely auto it without any human approval. 2. nobody wants to stare at screen, then if the first one is true, the best way is to make it such a way that it works async without distracting the lawyer, who usually loves focus deep. Of course, I can also choose to let them auto process in batch, so the lawyer can get notification of email when they are reviewed by agent, review all these small mistakes in batch, then focus on something else.
 ### Translating contracts and auto save as PDF
 ### For lots of parts where we need to look up the internet for the updated law, because whatever in the existing model might be outdated. So, one agent will be specifically designed for it.
+### Have the option to select things like "ignore place holder", or custom instructions.
 
 GEMINI开发建议：
 A. 解决 "Monitoring" (开发者日志)

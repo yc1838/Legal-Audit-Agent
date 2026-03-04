@@ -84,7 +84,7 @@ export const InteractivePDFViewer = forwardRef<{ scrollToPage: (page: number) =>
                     }
                     className="flex flex-col items-center gap-4"
                 >
-                    {Array.from(new Array(numPages), (el, index) => (
+                    {Array.from(new Array(numPages), (_, index) => (
                         <div
                             key={`page_${index + 1}`}
                             ref={(el) => {

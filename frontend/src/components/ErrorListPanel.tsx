@@ -1,4 +1,4 @@
-import { AlertTriangle, MapPin, Lightbulb } from "lucide-react";
+import { MapPin, Lightbulb } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -101,5 +101,4 @@ export function ErrorListPanel({ errors, onSelectError, selectedIndex, isProcess
         </div>
     );
 }
-
 

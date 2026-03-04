@@ -366,11 +366,14 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
         yield json.dumps({"stage": "analyzing", "message": f"Legal Reviewer: Critiquing contract clauses with {model}..."}) + "\n"
         yield _yield_log("INFO", f"Sending context window of {len(text)} tokens to {model} API...")
         
-        # Run sync API call in threadpool to avoid blocking event loop
-        loop = asyncio.get_running_loop()
-        
         full_prompt = f"{TEST_PROMPT}\n\n--- CONTRACT TEXT BEGINS ---\n{text}\n--- CONTRACT TEXT ENDS ---"
         raw_output = ""
+
+        # Log the beginning of the prompt for debugging context
+        yield _yield_log("DEBUG", f"Input Prompt Snippet: {full_prompt[:500]}...")
+        
+        # Run sync API call in threadpool to avoid blocking event loop
+        loop = asyncio.get_running_loop()
         
         if is_gemini:
             response = await loop.run_in_executor(None, lambda: client.models.generate_content(
@@ -395,7 +398,7 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
         # Log to Excel (Non-test mode only)
         _log_to_excel(model, filename, full_prompt, raw_output)
         
-        yield _yield_log("DEBUG", f"Raw AI Output snippet: {raw_output[:100]}...")
+        yield _yield_log("DEBUG", f"Raw AI Output: {raw_output}")
 
         yield json.dumps({"stage": "finalizing", "message": "Synthesizing findings into structured report..."}) + "\n"
 
@@ -449,10 +452,11 @@ async def analyze_document_generator(file_path: str, test_mode: bool = False, mo
                          # If page was different (drift), maybe update location string?
                          # Optional: err_obj["location"] += f" (Found on Page {res['page']})"
                          success_count += 1
+                         yield _yield_log("DEBUG", f"Locator: Found '{task['text'][:30]}...' on P{res['page']} at {res['rects']}")
                      else:
                          # Log failure for debug
                          task = res['original_task']
-                         # logger.warning(f"Could not locate '{task['text'][:10]}...'")
+                         yield _yield_log("WARNING", f"Locator: Failed to find '{task['text']}' on P{task['page']}")
 
                  yield _yield_log("INFO", f"Locator Swarm finished. Resolved {success_count}/{len(locator_tasks)} precise locations.")
 
