@@ -11,7 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from app.contract_analyze import analyze_document, analyze_document_generator, _get_client
+from app.contract_analyze import analyze_document, analyze_document_generator, _get_gemini_client
+
 import subprocess
 import json
 from datetime import datetime
@@ -52,7 +53,7 @@ async def health_check():
 
 
 @app.post("/analyze-contract-stream/")
-async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool = False):
+async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool = False, model: str = "gemini-2.5-flash"):
     """Upload a PDF and run contract analysis with real-time status updates."""
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
@@ -71,7 +72,7 @@ async def analyze_contract_stream(file: UploadFile = File(...), test_mode: bool 
                 out_file.write(contents)
 
             # analyze_document_generator yields JSON strings
-            async for stage_data in analyze_document_generator(temp_path, test_mode=test_mode):
+            async for stage_data in analyze_document_generator(temp_path, test_mode=test_mode, model=model):
                 yield f"{stage_data}\n"
         except Exception as e:
             logger.exception("Streaming analysis failed")
@@ -108,7 +109,7 @@ async def git_sync():
              return {"status": "success", "message": "Nothing to sync. Your code is already up to date!"}
         
         # 3. Summarize with Gemini using the staged diff
-        client = _get_client()
+        client = _get_gemini_client()
         prompt = f"""
         Role: Senior Software Engineer.
         Task: Write a concise, professional git commit message for the following changes.
@@ -147,7 +148,7 @@ async def adhd_dump(request: ADHDDumpRequest):
             raise HTTPException(status_code=400, detail="Empty content")
 
         # 1. Summarize and propose solution with Gemini
-        client = _get_client()
+        client = _get_gemini_client()
         prompt = f"""
         Role: Efficient Task Manager & System Architect.
         Task: Clean up and structure the following raw thoughts into a professional 'Concern' item and a 'Proposed Systemic Solution'.
@@ -184,7 +185,7 @@ async def adhd_dump(request: ADHDDumpRequest):
 
 
 @app.post("/analyze-contract/", response_model=AnalyzeResponse)
-async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False):
+async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False, model: str = "gemini-2.5-flash"):
     """Upload a PDF and run contract analysis."""
     if not file.filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is required.")
@@ -201,7 +202,7 @@ async def analyze_contract(file: UploadFile = File(...), test_mode: bool = False
         with open(temp_path, "wb") as out_file:
             out_file.write(contents)
 
-        result = await analyze_document(temp_path, test_mode=test_mode)
+        result = await analyze_document(temp_path, test_mode=test_mode, model=model)
         if not isinstance(result, dict):
             raise RuntimeError(f"Analysis failed to return a valid result: {result!r}")
 

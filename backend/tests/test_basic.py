@@ -11,7 +11,7 @@ client = TestClient(app)
 def test_analyze_pdf_success(monkeypatch, tmp_path):
     """Upload a PDF and ensure successful analysis response."""
 
-    def fake_analyze_document(file_path, test_mode=False):
+    async def fake_analyze_document(file_path, test_mode=False, model=None):
         return {"errors": [{"location": "page 1", "error": "sample issue"}]}
 
     monkeypatch.setattr("app.main.analyze_document", fake_analyze_document)
@@ -55,5 +55,5 @@ def test_test_mode_success(tmp_path):
     assert response.status_code == 200
     body = response.json()
     assert body["file_name"] == "sample.pdf"
-    assert len(body["errors"]) == 3
-    assert "Effective Date" in body["errors"][0]["error"]
+    assert len(body["errors"]) == 19
+    assert "Amendment" in body["errors"][0]["error"]

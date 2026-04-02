@@ -117,7 +117,7 @@ export function DevLogWindow({ logs }: DevLogWindowProps) {
                     logs.map((log, i) => (
                         <div key={i} className="flex space-x-2 group hover:bg-white/5 transition-colors leading-relaxed">
                             <span className="text-gray-600 shrink-0">[{log.timestamp}]</span>
-                            <span className={cn("block break-all", getLogColor(log.level))}>
+                            <span className={cn("block break-all whitespace-pre-wrap font-mono flex-1", getLogColor(log.level))}>
                                 {log.message}
                             </span>
                         </div>

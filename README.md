@@ -2,6 +2,16 @@
 
 A monorepo project for analyzing and auditing legal contracts, featuring a Python backend and a React frontend.
 
+## Recent Updates (Dec 2025)
+
+*   **Interactive PDF Viewer**: Replaced static iframe with `react-pdf`. Now supports **click-to-scroll** (clicking an error card scrolls to the exact page) and page highlighting.
+*   **Async Backend**: Refactored the entire analysis pipeline (`contract_analyze.py`) to be fully asynchronous, preventing server stalls during streaming.
+*   **Enhanced UI**: "Detected Risks" panel now features animated error cards and better visual integration with the PDF viewer.
+*   **Parallel Locator Swarm**: Implemented a parallel locator swarm for faster and more efficient error finding.
+*   **Enhanced Visualization**: Improved `InteractivePDFViewer` with responsive highlighting scaling and better text location parsing.
+*   **Robust Testing**: Added mock data fallback for the locator to ensure UI feedback even when exact matches typically fail during testing.
+
+
 ## Project Structure
 
 The project is organized as a monorepo with two main packages:
@@ -148,6 +158,7 @@ Also fix the problem that AI constantly look get the definition is missing or no
 ### Add functionality of, change the product to be a completely legal financial contract review product. The lawyer will be able to review contracts on this app, while the systems runs on the background, highlight those for example data consistencies on maybe a right side bar (showing position in right side bar, click when lawyer finish whatever she was focusing on, and then it jumps to the actual position). This is important because i realized 1. legal is so strict there is no way we can completely auto it without any human approval. 2. nobody wants to stare at screen, then if the first one is true, the best way is to make it such a way that it works async without distracting the lawyer, who usually loves focus deep. Of course, I can also choose to let them auto process in batch, so the lawyer can get notification of email when they are reviewed by agent, review all these small mistakes in batch, then focus on something else.
 ### Translating contracts and auto save as PDF
 ### For lots of parts where we need to look up the internet for the updated law, because whatever in the existing model might be outdated. So, one agent will be specifically designed for it.
+### Have the option to select things like "ignore place holder", or custom instructions.
 
 GEMINI开发建议：
 A. 解决 "Monitoring" (开发者日志)
@@ -182,3 +193,19 @@ Here is the cleaned-up and structured version of your thoughts:
 ### ADHD Dump Case Log (2025-12-28 01:17)
 * **Concern:** High-friction transition from document-based insights to execution, where users must manually bridge the gap between identifying evidence (e.g., in a PDF) and performing complex administrative tasks like entity resolution, calendar coordination, and invitation management.
 * **Systemic Fix:** Implement a Context-Aware Multi-Agent Orchestration layer that integrates UI-level hooks (OCR/Context Capture) with a Tool-Calling Agent. This system should utilize a Named Entity Recognition (NER) module to map "@mentions" to contact databases and a Constraint-Based Scheduling Agent that autonomously queries Calendar APIs to find optimal slots based on "Work Hours" system parameters and existing availability.
+
+
+## System Architecture
+
+The following diagram illustrates the current request lifecycle and component interactions, including the new Parallel Locator Swarm.
+
+![Request Flow Architecture](assets/architecture_request_flow.png)
+
+### Component Interaction
+
+![Component Interaction Architecture](assets/architecture_components.png)
+![Request Flow Architecture screenshot version](assets/image.png)
+
+### Future System Architecture
+![Future Architecture](backend/assets/future_architecture.svg)
+![Excli style future architecture](backend/assets/ex_style_graphRAG.svg)

@@ -3,73 +3,126 @@
 @tailwind utilities;
 
 @layer base {
+
+  /* Liquid Glass Theme - Apple 2025 Inspired */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 5%;
+    /* Fluid deep dark */
+    --foreground: 0 0% 100%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 210 100% 50%;
+    /* Clear Blue */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 280 100% 60%;
+    /* Soft Purple */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 10% 70%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 320 100% 60%;
+    /* Warm Pink */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 210 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1.5rem;
+    /* Super rounded */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 5%;
+    --foreground: 0 0% 100%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 280 100% 60%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 10% 15%;
+    --muted-foreground: 240 10% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 320 100% 60%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --ring: 210 100% 50%;
   }
+}
+
+@layer utilities {
+  .liquid-mesh-bg {
+    background-color: #000000;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+      radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+    background-size: 200% 200%;
+    animation: liquid-pan 15s ease infinite alternate;
+  }
+
+  @keyframes liquid-pan {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .glass-card {
+    background: rgba(40, 40, 50, 0.3);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-input {
+    background: rgba(20, 20, 30, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .liquid-button {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
